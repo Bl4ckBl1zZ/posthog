@@ -1,4 +1,7 @@
+from functools import lru_cache
 from typing import TYPE_CHECKING
+
+from django.conf import settings
 
 import posthoganalytics
 from rest_framework.exceptions import NotFound
@@ -17,17 +20,34 @@ REPLAY_VISION_ACTIONS_FEATURE_FLAG = "replay-vision-actions"
 REPLAY_VISION_QUALITY_FEATURE_FLAG = "replay-vision-quality"
 
 
+@lru_cache(maxsize=1)
+def _self_hosted_flag_client() -> posthoganalytics.Client:
+    from posthog.utils import _build_flag_provider
+
+    client = posthoganalytics.Client(
+        "self-hosted-local-feature-evaluation",
+        host=settings.SITE_URL,
+        personal_api_key="local-cache-only",
+        send=False,
+        enable_local_evaluation=True,
+        flag_definition_cache_provider=_build_flag_provider(),
+    )
+    client.load_feature_flags()
+    return client
+
+
 def _vision_flag_enabled(flag_key: str, user: "User", team: "Team") -> bool:
     distinct_id = user.distinct_id or str(user.uuid)
     organization_id = str(team.organization_id)
     project_id = str(team.id)
+    client = _self_hosted_flag_client() if settings.SELF_CAPTURE else posthoganalytics
     return bool(
-        posthoganalytics.feature_enabled(
+        client.feature_enabled(
             flag_key,
             distinct_id,
             groups={"organization": organization_id, "project": project_id},
             group_properties={"organization": {"id": organization_id}, "project": {"id": project_id}},
-            only_evaluate_locally=False,
+            only_evaluate_locally=settings.SELF_CAPTURE,
             send_feature_flag_events=False,
         )
     )
