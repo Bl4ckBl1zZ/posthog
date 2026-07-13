@@ -248,6 +248,7 @@ class ApplyScannerWorkflow(PostHogWorkflow):
                     observation_id=observation_id,
                     file_uri=uploaded.file_uri,
                     mime_type=uploaded.mime_type,
+                    asset_id=uploaded.asset_id,
                 ),
                 # Multi-turn tool conversation (video + on-demand event lookups) needs more headroom than a single call.
                 start_to_close_timeout=dt.timedelta(minutes=10),
@@ -308,7 +309,7 @@ class ApplyScannerWorkflow(PostHogWorkflow):
                 await self._mark_failed(observation_id, scanner_type, failure_kind, _root_cause_message(e))
             raise
         finally:
-            if uploaded is not None:
+            if uploaded is not None and uploaded.gemini_file_name:
                 # Swallow exceptions so cleanup failure can't fail a workflow that already marked-succeeded.
                 try:
                     await wf.execute_activity(

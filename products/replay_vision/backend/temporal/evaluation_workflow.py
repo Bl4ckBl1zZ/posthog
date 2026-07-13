@@ -153,6 +153,7 @@ class EvaluatePromptSuggestionWorkflow(PostHogWorkflow):
                     file_uri=uploaded.file_uri,
                     mime_type=uploaded.mime_type,
                     snapshot_override=selection.snapshot,
+                    asset_id=uploaded.asset_id,
                 ),
                 start_to_close_timeout=dt.timedelta(minutes=10),
                 retry_policy=_STEP_RETRY,
@@ -163,7 +164,7 @@ class EvaluatePromptSuggestionWorkflow(PostHogWorkflow):
         except Exception as e:
             await self._record(inputs, session, selection, error=_cause_message(e))
         finally:
-            if uploaded is not None:
+            if uploaded is not None and uploaded.gemini_file_name:
                 try:
                     await wf.execute_activity(
                         cleanup_gemini_file_activity,

@@ -27,9 +27,16 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 \
 
 FROM ${POSTHOG_BASE_IMAGE}
 
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN rm -rf /code/frontend/dist /code/staticfiles
+COPY ee/settings.py /code/ee/settings.py
 COPY posthog/api/organization.py /code/posthog/api/organization.py
 COPY posthog/utils.py /code/posthog/utils.py
+COPY products/replay_vision/backend/temporal/ /code/products/replay_vision/backend/temporal/
 COPY --from=frontend-build /code/frontend/dist /code/frontend/dist
 RUN SKIP_SERVICE_VERSION_REQUIREMENTS=1 \
     STATIC_COLLECTION=1 \

@@ -13,6 +13,8 @@ import functools
 from typing import Any, TypeVar
 from uuid import UUID
 
+from django.conf import settings
+
 import structlog
 from asgiref.sync import sync_to_async
 from google.genai import (
@@ -88,6 +90,28 @@ async def _call_scanner_provider(inputs: CallScannerProviderInputs) -> ScannerCa
     scanner = scanner_from_snapshot(snapshot)
 
     preamble_text = scanner.preamble(team_name=team_name, session_metadata=llm_inputs.metadata.as_prompt_dict())
+    if str(getattr(settings, "REPLAY_VISION_PROVIDER", "gemini")).lower() == "anthropic":
+        if inputs.asset_id is None:
+            raise ScannerFailureError(
+                "Replay Vision Anthropic provider requires an exported asset",
+                kind=FailureKind.INTERNAL_ERROR,
+            )
+        from products.replay_vision.backend.temporal.activities.call_scanner_provider_anthropic import (
+            run_anthropic_mission,
+        )
+
+        finalized, signals = await run_anthropic_mission(
+            scanner=scanner,
+            snapshot=snapshot,
+            preamble_text=preamble_text,
+            team_id=inputs.team_id,
+            llm_inputs=llm_inputs,
+            asset_id=inputs.asset_id,
+        )
+        duration_ms = int(llm_inputs.metadata.duration_seconds * 1000)
+        finalized = _resolve_citations(finalized, scanner, duration_ms)
+        return ScannerCallOutput(model_output=finalized, signals=signals)
+
     video_part = types.Part(file_data=types.FileData(file_uri=inputs.file_uri, mime_type=inputs.mime_type))
 
     finalized, signals = await _run_mission(

@@ -5,6 +5,8 @@ import asyncio
 import tempfile
 from datetime import UTC, datetime
 
+from django.conf import settings
+
 import structlog
 from asgiref.sync import sync_to_async
 from google.genai import (
@@ -39,6 +41,15 @@ async def upload_video_to_gemini_activity(inputs: UploadVideoToGeminiInputs) -> 
 
 
 async def _upload_video(inputs: UploadVideoToGeminiInputs) -> UploadedVideo:
+    if str(getattr(settings, "REPLAY_VISION_PROVIDER", "gemini")).lower() == "anthropic":
+        asset = await ExportedAsset.objects.aget(id=inputs.asset_id)
+        return UploadedVideo(
+            file_uri="",
+            mime_type=asset.export_format,
+            gemini_file_name="",
+            asset_id=asset.id,
+        )
+
     workflow_id = activity.info().workflow_id
     if workflow_id is None:
         raise ScannerFailureError("upload_video_to_gemini_activity has no workflow_id", kind=FailureKind.INTERNAL_ERROR)
@@ -111,6 +122,7 @@ async def _upload_video(inputs: UploadVideoToGeminiInputs) -> UploadedVideo:
         file_uri=uploaded_file.uri,
         mime_type=uploaded_file.mime_type or asset.export_format,
         gemini_file_name=gemini_file_name,
+        asset_id=asset.id,
     )
 
 
