@@ -32,7 +32,8 @@ async function rasterizeRecordingActivity(
     playerHtml: string,
     input: RasterizeRecordingInput
 ): Promise<RasterizeRecordingOutput> {
-    const { workflowExecution, activityId } = Context.current().info
+    const activityContext = Context.current()
+    const { workflowExecution, activityId } = activityContext.info
     const log = createLogger({
         session_id: input.session_id,
         team_id: input.team_id,
@@ -55,7 +56,9 @@ async function rasterizeRecordingActivity(
     // the latest phase and frame count. Temporal exposes this via
     // `pending_activities[].heartbeat_details` for the parent workflow to read.
     const progress: RasterizationProgress = { phase: 'setup', frame: 0, estimatedTotalFrames: 0 }
-    const onProgress = (): void => Context.current().heartbeat(progress)
+    const onProgress = (): void => activityContext.heartbeat(progress)
+    const heartbeatTimer = setInterval(onProgress, 10_000)
+    heartbeatTimer.unref()
 
     try {
         const result = await rasterizeRecording(
@@ -128,6 +131,7 @@ async function rasterizeRecordingActivity(
         }
         throw toActivityError(err)
     } finally {
+        clearInterval(heartbeatTimer)
         RasterizationMetrics.activityFinished()
         await fs.rm(outputPath, { force: true })
     }

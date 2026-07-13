@@ -9,13 +9,13 @@ import { RasterizeRecordingInput, RecordingResult } from '~/session-replay/recor
 
 jest.mock('@temporalio/activity', () => ({
     Context: {
-        current: () => ({
+        current: jest.fn(() => ({
             info: {
                 activityId: 'test-activity-1',
                 workflowExecution: { workflowId: 'test-workflow-1', runId: 'test-run-1' },
             },
             heartbeat: jest.fn(),
-        }),
+        })),
     },
 }))
 
@@ -45,6 +45,7 @@ jest.mock('~/session-replay/recording-rasterizer/logger', () => ({
 }))
 
 const { ApplicationFailure } = require('@temporalio/common')
+const { Context } = require('@temporalio/activity')
 const mockedRasterizeRecording = rasterizeRecording as jest.MockedFunction<typeof rasterizeRecording>
 const mockedUploadToS3 = uploadToS3 as jest.MockedFunction<typeof uploadToS3>
 
@@ -159,6 +160,31 @@ describe('rasterizeRecordingActivity', () => {
         mockSuccessfulRecording({ capture_duration_s: 39.96 })
         const result = await rasterizeRecordingActivity(baseInput())
         expect(result.video_duration_s).toBe(39.96)
+    })
+
+    it('keeps heartbeating while rasterization is waiting for post-processing', async () => {
+        jest.useFakeTimers()
+        try {
+            let finishRecording: (() => void) | undefined
+            mockedRasterizeRecording.mockImplementation(async (_pool, _input, outputPath) => {
+                await new Promise<void>((resolve) => {
+                    finishRecording = resolve
+                })
+                await fs.writeFile(outputPath, Buffer.alloc(64))
+                return baseRecordingResult(outputPath)
+            })
+
+            const activity = rasterizeRecordingActivity(baseInput())
+            jest.advanceTimersByTime(20_000)
+
+            const activityContext = Context.current.mock.results[0].value
+            expect(activityContext.heartbeat).toHaveBeenCalledTimes(2)
+
+            finishRecording?.()
+            await activity
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     describe('temp file cleanup', () => {

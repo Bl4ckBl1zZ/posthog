@@ -156,6 +156,37 @@ describe('config', () => {
                 expect(config.ffmpegOutputOpts).toContain('-movflags +faststart')
             })
 
+            it('allows an explicit MP4 encoding preset', () => {
+                const originalPreset = process.env.RASTERIZER_FFMPEG_PRESET
+                process.env.RASTERIZER_FFMPEG_PRESET = 'ultrafast'
+
+                try {
+                    const config = buildCaptureConfig(baseInput())
+                    expect(config.ffmpegOutputOpts).toContain('-preset ultrafast')
+                } finally {
+                    if (originalPreset === undefined) {
+                        delete process.env.RASTERIZER_FFMPEG_PRESET
+                    } else {
+                        process.env.RASTERIZER_FFMPEG_PRESET = originalPreset
+                    }
+                }
+            })
+
+            it('rejects unsupported MP4 encoding presets', () => {
+                const originalPreset = process.env.RASTERIZER_FFMPEG_PRESET
+                process.env.RASTERIZER_FFMPEG_PRESET = 'veryfast -f data'
+
+                try {
+                    expect(() => buildCaptureConfig(baseInput())).toThrow('Unsupported RASTERIZER_FFMPEG_PRESET')
+                } finally {
+                    if (originalPreset === undefined) {
+                        delete process.env.RASTERIZER_FFMPEG_PRESET
+                    } else {
+                        process.env.RASTERIZER_FFMPEG_PRESET = originalPreset
+                    }
+                }
+            })
+
             it('uses VP9 output opts for WebM format', () => {
                 const config = buildCaptureConfig(baseInput({ output_format: 'webm' }))
                 expect(config.outputFormat).toBe('webm')

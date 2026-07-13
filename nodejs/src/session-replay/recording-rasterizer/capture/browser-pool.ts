@@ -61,6 +61,10 @@ export class BrowserPool {
             '--crash-dumps-dir=/tmp/chrome-crash-dumps',
             '--mute-audio',
             ...this.proxyArgs,
+            ...(process.env.DISABLE_BROWSER_SANDBOX === '1' ? ['--no-sandbox'] : []),
+            ...(process.env.RASTERIZER_SINGLE_PROCESS === '1'
+                ? ['--single-process', '--no-zygote', '--disable-gpu']
+                : []),
             ...(config.disableBrowserSecurity ? ['--disable-web-security'] : []),
             ...(process.env.CHROME_HOST_RESOLVER_RULES
                 ? [`--host-resolver-rules=${process.env.CHROME_HOST_RESOLVER_RULES}`]
