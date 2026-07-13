@@ -60,6 +60,9 @@ class PremiumMultiorganizationPermission(permissions.BasePermission):
 
     def has_permission(self, request: Request, view) -> bool:
         user = cast(User, request.user)
+        if settings.MULTI_ORG_ENABLED:
+            return True
+
         if (
             view.action in CREATE_ACTIONS
             and (

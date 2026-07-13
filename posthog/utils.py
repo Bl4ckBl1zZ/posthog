@@ -51,7 +51,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.utils.encoders import JSONEncoder
 
-from posthog.cloud_utils import get_cached_instance_license, is_cloud
+from posthog.cloud_utils import is_cloud
 from posthog.constants import AvailableFeature
 from posthog.exceptions import RequestParsingError, UnspecifiedCompressionFallbackParsingError
 from posthog.exceptions_capture import capture_exception
@@ -1473,7 +1473,7 @@ def get_can_create_org(user: Union["AbstractBaseUser", "AnonymousUser"]) -> bool
     - if running end-to-end tests
     - if there's no organization yet
     - if DEBUG is True
-    - if an appropriate license is active and MULTI_ORG_ENABLED is True
+    - if MULTI_ORG_ENABLED is True
     """
     from posthog.models.organization import Organization
 
@@ -1487,11 +1487,7 @@ def get_can_create_org(user: Union["AbstractBaseUser", "AnonymousUser"]) -> bool
         return True
 
     if settings.MULTI_ORG_ENABLED:
-        license = get_cached_instance_license()
-        if license is not None and AvailableFeature.ZAPIER in license.available_features:
-            return True
-        else:
-            logger.warning("You have configured MULTI_ORG_ENABLED, but not the required premium PostHog plan!")
+        return True
 
     return False
 

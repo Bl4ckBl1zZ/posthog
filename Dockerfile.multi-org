@@ -1,0 +1,5 @@
+ARG POSTHOG_BASE_IMAGE=posthog/posthog:latest
+FROM ${POSTHOG_BASE_IMAGE}
+
+COPY posthog/api/organization.py /code/posthog/api/organization.py
+COPY posthog/utils.py /code/posthog/utils.py

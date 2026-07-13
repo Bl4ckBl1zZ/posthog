@@ -75,6 +75,13 @@ class TestOrganizationAPI(APIBaseTest):
             response = self.client.post("/api/organizations/", {"name": "Test"})
             self.assertEqual(Organization.objects.count(), 1)
 
+    def test_can_create_organization_with_multi_org_enabled_on_self_hosted(self):
+        with self.is_cloud(False), self.settings(MULTI_ORG_ENABLED=True):
+            response = self.client.post("/api/organizations/", {"name": "Test"})
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Organization.objects.count(), 2)
+
     def test_cant_create_organization_with_custom_plugin_level(self):
         with self.is_cloud(True):
             response = self.client.post("/api/organizations/", {"name": "Test", "plugins_access_level": 6})
