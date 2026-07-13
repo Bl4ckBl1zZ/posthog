@@ -10,4 +10,5 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY ee/settings.py /code/ee/settings.py
+COPY products/replay_vision/backend/feature_flag.py /code/products/replay_vision/backend/feature_flag.py
 COPY products/replay_vision/backend/temporal/ /code/products/replay_vision/backend/temporal/
