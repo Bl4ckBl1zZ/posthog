@@ -193,6 +193,7 @@ class UploadedVideo(BaseModel, frozen=True):
     file_uri: str
     mime_type: str
     gemini_file_name: str  # opaque ID for `files.delete`
+    asset_id: int | None = None
 
 
 class CallScannerProviderInputs(BaseModel, frozen=True):
@@ -202,6 +203,8 @@ class CallScannerProviderInputs(BaseModel, frozen=True):
     mime_type: str
     # When set, replaces the observation row's snapshot (evaluations re-run rated sessions with the suggested prompt).
     snapshot_override: ScannerSnapshot | None = None
+    # Anthropic consumes sampled frames from the local recording asset instead of a provider-hosted video URI.
+    asset_id: int | None = None
 
 
 class ScannerCallOutput(BaseModel, frozen=True):
