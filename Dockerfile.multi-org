@@ -23,7 +23,7 @@ RUN --mount=type=cache,id=pnpm-multi-org,target=/tmp/pnpm-store-v24 \
 COPY frontend/ frontend/
 RUN rm -rf frontend/dist && mkdir -p frontend/dist
 RUN NODE_OPTIONS=--max-old-space-size=4096 \
-    bin/turbo --filter=@posthog/frontend --concurrency=1 --cache-workers=2 build
+    bin/turbo --filter=@posthog/frontend --concurrency=1 --cache-workers=1 build
 
 FROM ${POSTHOG_BASE_IMAGE}
 
