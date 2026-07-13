@@ -1,7 +1,9 @@
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from unittest.mock import AsyncMock, patch
 
 from pydantic import BaseModel
 
@@ -9,6 +11,7 @@ from products.replay_vision.backend.temporal.activities.call_scanner_provider_an
     VideoFrame,
     _extract_video_frames,
     _frame_content,
+    _load_video_asset,
     _run_anthropic_step,
 )
 from products.replay_vision.backend.temporal.scanners.base import MissionStep
@@ -111,6 +114,32 @@ def test_frame_content_includes_timestamp_and_jpeg_data() -> None:
         "media_type": "image/jpeg",
         "data": "anBlZw==",
     }
+
+
+@pytest.mark.asyncio
+async def test_load_video_asset_retries_a_temporarily_empty_object() -> None:
+    asset = SimpleNamespace(content=b"", content_location="exports/video.mp4", export_format="video/mp4")
+
+    with (
+        patch(
+            "products.replay_vision.backend.temporal.activities.call_scanner_provider_anthropic.ExportedAsset.objects.aget",
+            new=AsyncMock(return_value=asset),
+        ),
+        patch(
+            "products.replay_vision.backend.temporal.activities.call_scanner_provider_anthropic.object_storage.read_bytes",
+            side_effect=[b"", b"video"],
+        ) as read_bytes,
+        patch(
+            "products.replay_vision.backend.temporal.activities.call_scanner_provider_anthropic.asyncio.sleep",
+            new=AsyncMock(),
+        ) as sleep,
+    ):
+        content, mime_type = await _load_video_asset(2)
+
+    assert content == b"video"
+    assert mime_type == "video/mp4"
+    assert read_bytes.call_count == 2
+    sleep.assert_awaited_once_with(1)
 
 
 def test_extract_video_frames_runs_one_ffmpeg_pass(monkeypatch: pytest.MonkeyPatch) -> None:

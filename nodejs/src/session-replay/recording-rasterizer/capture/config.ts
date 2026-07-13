@@ -5,6 +5,19 @@ import { CaptureConfig, RasterizeRecordingInput } from '~/session-replay/recordi
 
 const DEFAULT_PLAYBACK_SPEED = 4
 const DEFAULT_FPS = 24
+const DEFAULT_FFMPEG_PRESET = 'veryfast'
+const FFMPEG_PRESETS = new Set([
+    'ultrafast',
+    'superfast',
+    'veryfast',
+    'faster',
+    'fast',
+    'medium',
+    'slow',
+    'slower',
+    'veryslow',
+    'placebo',
+])
 
 // Coerce a value interpolated into an ffmpeg option (`-t`) or filter (`setpts=`, `fps=`) to a
 // finite number. ffmpeg is spawned without a shell, but a non-finite/non-numeric value reaching
@@ -17,6 +30,14 @@ function toFiniteNumber(value: unknown, field: string): number {
         throw new RasterizationError(`${field} must be a finite number, got: ${String(value)}`, false, 'INVALID_INPUT')
     }
     return n
+}
+
+function getFfmpegPreset(): string {
+    const preset = process.env.RASTERIZER_FFMPEG_PRESET || DEFAULT_FFMPEG_PRESET
+    if (!FFMPEG_PRESETS.has(preset)) {
+        throw new RasterizationError(`Unsupported RASTERIZER_FFMPEG_PRESET: ${preset}`, false, 'INVALID_CONFIG')
+    }
+    return preset
 }
 
 export function validateInput(input: RasterizeRecordingInput): void {
@@ -74,7 +95,14 @@ export function buildCaptureConfig(input: RasterizeRecordingInput): CaptureConfi
             ? ['-f webm', '-c:v libvpx-vp9', '-crf 30', '-b:v 0']
             : outputFormat === 'gif'
               ? ['-f gif', '-c:v gif', '-loop', '0']
-              : ['-f mp4', '-c:v libx264', '-preset veryfast', '-crf 23', '-pix_fmt yuv420p', '-movflags +faststart']
+              : [
+                    '-f mp4',
+                    '-c:v libx264',
+                    `-preset ${getFfmpegPreset()}`,
+                    '-crf 23',
+                    '-pix_fmt yuv420p',
+                    '-movflags +faststart',
+                ]
     if (trim) {
         ffmpegOutputOpts.push(`-t ${trim}`)
     }

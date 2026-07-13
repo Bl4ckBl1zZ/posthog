@@ -46,6 +46,7 @@ _MAX_LLM_ATTEMPTS = 2
 _MAX_TOOL_ROUNDS = 8
 _MAX_RAW_FRAME_BYTES = 16 * 1024 * 1024
 _RESULT_TOOL_PREFIX = "submit_replay_vision_"
+_ASSET_READ_ATTEMPTS = 5
 
 
 @dataclass(frozen=True)
@@ -237,7 +238,26 @@ async def _load_video_asset(asset_id: int) -> tuple[bytes, str]:
     if asset.content:
         content = bytes(asset.content)
     elif asset.content_location:
-        content = await sync_to_async(object_storage.read_bytes, thread_sensitive=False)(asset.content_location)
+        content = b""
+        for attempt in range(_ASSET_READ_ATTEMPTS):
+            content = (
+                await sync_to_async(object_storage.read_bytes, thread_sensitive=False)(
+                    asset.content_location, missing_ok=True
+                )
+                or b""
+            )
+            if content:
+                break
+            if attempt < _ASSET_READ_ATTEMPTS - 1:
+                delay_seconds = 2**attempt
+                logger.warning(
+                    "replay_vision.asset_not_visible_yet",
+                    asset_id=asset_id,
+                    content_location=asset.content_location,
+                    attempt=attempt + 1,
+                    retry_in_seconds=delay_seconds,
+                )
+                await asyncio.sleep(delay_seconds)
     else:
         raise ScannerFailureError(
             f"ExportedAsset {asset_id} has neither content nor content_location",

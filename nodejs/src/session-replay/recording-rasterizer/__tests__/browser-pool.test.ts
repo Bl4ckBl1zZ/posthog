@@ -52,6 +52,8 @@ describe('BrowserPool', () => {
         delete process.env.https_proxy
         delete process.env.http_proxy
         delete process.env.RASTERIZER_USE_PROXY
+        delete process.env.DISABLE_BROWSER_SANDBOX
+        delete process.env.RASTERIZER_SINGLE_PROCESS
     })
 
     afterEach(async () => {
@@ -74,6 +76,29 @@ describe('BrowserPool', () => {
         const launchArgs = puppeteerCapture.launch.mock.calls[0][0].args as string[]
         expect(launchArgs.some((a) => a.startsWith('--proxy-server'))).toBe(false)
         expect(launchArgs).toContain('--crash-dumps-dir=/tmp/chrome-crash-dumps')
+        expect(launchArgs).not.toContain('--no-sandbox')
+    })
+
+    it('disables the Chrome sandbox only when explicitly requested', async () => {
+        process.env.DISABLE_BROWSER_SANDBOX = '1'
+        puppeteerCapture.launch.mockResolvedValue(mockBrowser())
+
+        pool = new BrowserPool(100)
+        await pool.launch()
+
+        const launchArgs = puppeteerCapture.launch.mock.calls[0][0].args as string[]
+        expect(launchArgs).toContain('--no-sandbox')
+    })
+
+    it('runs Chrome in one process only when explicitly requested', async () => {
+        process.env.RASTERIZER_SINGLE_PROCESS = '1'
+        puppeteerCapture.launch.mockResolvedValue(mockBrowser())
+
+        pool = new BrowserPool(100)
+        await pool.launch()
+
+        const launchArgs = puppeteerCapture.launch.mock.calls[0][0].args as string[]
+        expect(launchArgs).toEqual(expect.arrayContaining(['--single-process', '--no-zygote', '--disable-gpu']))
     })
 
     it('launches separate browsers for concurrent pages', async () => {
