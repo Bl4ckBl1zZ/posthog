@@ -5,7 +5,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { IconCheck, IconPlusSmall, IconSearch, IconX } from '@posthog/icons'
 
 import { KeyboardShortcut } from 'lib/components/KeyboardShortcut/KeyboardShortcut'
-import { upgradeModalLogic } from 'lib/components/UpgradeModal/upgradeModalLogic'
 import { IconBlank } from 'lib/lemon-ui/icons'
 import { UploadedLogo } from 'lib/lemon-ui/UploadedLogo'
 import { preflightLogic } from 'lib/logic/preflightLogic'
@@ -17,7 +16,7 @@ import { userLogic } from 'scenes/userLogic'
 
 import { globalModalsLogic } from '~/layout/globalModalsLogic'
 import { AccessLevelIndicator } from '~/layout/navigation/AccessLevelIndicator'
-import { AvailableFeature, OrganizationBasicType } from '~/types'
+import { OrganizationBasicType } from '~/types'
 
 import { ScrollableShadows } from '../ScrollableShadows/ScrollableShadows'
 import { newAccountMenuLogic } from './newAccountMenuLogic'
@@ -41,7 +40,6 @@ type ListItem = OrgListItem | CreateOrgItem
 
 export function OrgSwitcher({ dialog = true }: { dialog?: boolean }): JSX.Element {
     const { preflight } = useValues(preflightLogic)
-    const { guardAvailableFeature } = useValues(upgradeModalLogic)
     const { showCreateOrganizationModal } = useActions(globalModalsLogic)
     const { currentOrganization } = useValues(organizationLogic)
     const { otherOrganizations } = useValues(userLogic)
@@ -106,27 +104,15 @@ export function OrgSwitcher({ dialog = true }: { dialog?: boolean }): JSX.Elemen
     const handleItemClick = useCallback(
         (item: ListItem) => {
             if (item.type === 'create') {
-                guardAvailableFeature(
-                    AvailableFeature.ORGANIZATIONS_PROJECTS,
-                    () => {
-                        showCreateOrganizationModal()
-                        setAccountMenuOpen(false)
-                    },
-                    { guardOnCloud: false }
-                )
+                showCreateOrganizationModal()
+                setAccountMenuOpen(false)
                 closeOrgSwitcher()
             } else if (!item.isCurrent && !item.isDisabled) {
                 closeOrgSwitcher()
                 updateCurrentOrganization(item.org.id)
             }
         },
-        [
-            closeOrgSwitcher,
-            updateCurrentOrganization,
-            guardAvailableFeature,
-            showCreateOrganizationModal,
-            setAccountMenuOpen,
-        ]
+        [closeOrgSwitcher, updateCurrentOrganization, showCreateOrganizationModal, setAccountMenuOpen]
     )
 
     const getItemString = useCallback((item: ListItem | null): string => {
