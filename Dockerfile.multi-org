@@ -21,7 +21,8 @@ RUN --mount=type=cache,id=pnpm-multi-org,target=/tmp/pnpm-store-v24 \
     CI=1 pnpm --filter=@posthog/frontend... install --frozen-lockfile --store-dir /tmp/pnpm-store-v24
 
 COPY frontend/ frontend/
-RUN bin/turbo --filter=@posthog/frontend build
+RUN NODE_OPTIONS=--max-old-space-size=4096 \
+    bin/turbo --filter=@posthog/frontend --concurrency=1 --cache-workers=2 build
 
 FROM ${POSTHOG_BASE_IMAGE}
 
