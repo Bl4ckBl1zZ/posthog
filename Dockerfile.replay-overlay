@@ -1,0 +1,13 @@
+ARG POSTHOG_BASE_IMAGE=ghcr.io/bl4ckbl1zz/posthog:multi-org-local-20260713-1
+
+FROM ${POSTHOG_BASE_IMAGE}
+
+USER root
+WORKDIR /code
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ee/settings.py /code/ee/settings.py
+COPY products/replay_vision/backend/temporal/ /code/products/replay_vision/backend/temporal/
