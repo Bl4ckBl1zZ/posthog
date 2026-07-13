@@ -1,0 +1,60 @@
+name: Build Replay Vision overlay image
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - master
+        paths:
+            - 'Dockerfile.replay-overlay'
+            - 'ee/settings.py'
+            - 'products/replay_vision/backend/temporal/**'
+            - '.github/workflows/build-replay-vision-overlay.yml'
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Check out
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+            - name: Log in to GitHub Container Registry
+              uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build and push
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+              with:
+                  context: .
+                  file: Dockerfile.replay-overlay
+                  platforms: linux/arm64
+                  push: true
+                  tags: |
+                      ghcr.io/bl4ckbl1zz/posthog:multi-org-replay-latest
+                      ghcr.io/bl4ckbl1zz/posthog:multi-org-replay-${{ github.sha }}
+
+            - name: Verify image boots
+              env:
+                  IMAGE: ghcr.io/bl4ckbl1zz/posthog:multi-org-replay-${{ github.sha }}
+              run: |
+                  docker run --rm --platform linux/arm64 \
+                      -e SKIP_SERVICE_VERSION_REQUIREMENTS=1 \
+                      -e STATIC_COLLECTION=1 \
+                      -e DATABASE_URL=postgres:/// \
+                      -e REDIS_URL=redis:/// \
+                      -e INTERNAL_API_SECRET=ci-boot-test-dummy-secret \
+                      "$IMAGE" sh -ec 'ffmpeg -version >/dev/null && python -c "import posthog.asgi; import products.replay_vision.backend.temporal.activities.call_scanner_provider_anthropic" && python manage.py check'
