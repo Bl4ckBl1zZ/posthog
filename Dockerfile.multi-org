@@ -1,5 +1,35 @@
 ARG POSTHOG_BASE_IMAGE=posthog/posthog:latest
+
+FROM --platform=$BUILDPLATFORM node:24.13.0-bookworm-slim AS frontend-build
+WORKDIR /code
+SHELL ["/bin/bash", "-e", "-o", "pipefail", "-c"]
+
+COPY turbo.json package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY frontend/package.json frontend/
+COPY frontend/bin/ frontend/bin/
+COPY bin/ bin/
+COPY patches/ patches/
+COPY common/hogvm/typescript/ common/hogvm/typescript/
+COPY common/esbuilder/ common/esbuilder/
+COPY common/replay-shared/ common/replay-shared/
+COPY common/tailwind/ common/tailwind/
+COPY packages/quill/ packages/quill/
+COPY products/ products/
+COPY docs/onboarding/ docs/onboarding/
+RUN --mount=type=cache,id=pnpm-multi-org,target=/tmp/pnpm-store-v24 \
+    corepack enable && \
+    CI=1 pnpm --filter=@posthog/frontend... install --frozen-lockfile --store-dir /tmp/pnpm-store-v24
+
+COPY frontend/ frontend/
+RUN bin/turbo --filter=@posthog/frontend build
+
 FROM ${POSTHOG_BASE_IMAGE}
 
 COPY posthog/api/organization.py /code/posthog/api/organization.py
 COPY posthog/utils.py /code/posthog/utils.py
+COPY --from=frontend-build /code/frontend/dist /code/frontend/dist
+RUN SKIP_SERVICE_VERSION_REQUIREMENTS=1 \
+    STATIC_COLLECTION=1 \
+    DATABASE_URL='postgres:///' \
+    REDIS_URL='redis:///' \
+    python manage.py collectstatic --noinput

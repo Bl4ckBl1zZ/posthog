@@ -248,14 +248,8 @@ export function NewAccountMenu({ isLayoutNavCollapsed }: AccountMenuProps): JSX.
                                             className="absolute right-0 -top-1 p-0"
                                             data-attr="new-account-menu-create-organization-icon-button"
                                             onClick={() => {
-                                                guardAvailableFeature(
-                                                    AvailableFeature.ORGANIZATIONS_PROJECTS,
-                                                    () => {
-                                                        setAccountMenuOpen(false)
-                                                        showCreateOrganizationModal()
-                                                    },
-                                                    { guardOnCloud: false }
-                                                )
+                                                setAccountMenuOpen(false)
+                                                showCreateOrganizationModal()
                                             }}
                                         >
                                             <IconPlusSmall className="text-tertiary size-4" />

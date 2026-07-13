@@ -14,9 +14,6 @@ import { userLogic } from 'scenes/userLogic'
 
 import { globalModalsLogic } from '~/layout/globalModalsLogic'
 import { AccessLevelIndicator } from '~/layout/navigation/AccessLevelIndicator'
-import { AvailableFeature } from '~/types'
-
-import { upgradeModalLogic } from '../UpgradeModal/upgradeModalLogic'
 
 export function OrgCombobox({ allowCreate = true }: { allowCreate?: boolean }): JSX.Element {
     const { preflight } = useValues(preflightLogic)
@@ -24,7 +21,6 @@ export function OrgCombobox({ allowCreate = true }: { allowCreate?: boolean }): 
     const { currentOrganization } = useValues(organizationLogic)
     const { otherOrganizations } = useValues(userLogic)
     const { updateCurrentOrganization } = useActions(userLogic)
-    const { guardAvailableFeature } = useValues(upgradeModalLogic)
 
     return (
         <Combobox>
@@ -111,17 +107,7 @@ export function OrgCombobox({ allowCreate = true }: { allowCreate?: boolean }): 
                             <ButtonPrimitive
                                 menuItem
                                 data-attr="new-organization-button"
-                                onClick={() =>
-                                    guardAvailableFeature(
-                                        AvailableFeature.ORGANIZATIONS_PROJECTS,
-                                        () => {
-                                            showCreateOrganizationModal()
-                                        },
-                                        {
-                                            guardOnCloud: false,
-                                        }
-                                    )
-                                }
+                                onClick={showCreateOrganizationModal}
                                 tooltip="Create a new organization"
                                 tooltipPlacement="right"
                             >
