@@ -261,16 +261,20 @@ def update_team_workflows_config(team: Team, validated_data: dict[str, Any], *, 
 
 
 def verify_team_session_recording_retention_period(team: Team, new_retention_period: str) -> None:
+    if not validate_retention_period(new_retention_period):
+        raise exceptions.ValidationError(  # HTTP 400
+            f"Must provide a valid retention period. Options are: {VALID_RETENTION_PERIODS}."
+        )
+
+    # Self-hosted operators pay for and manage their own object-storage retention.
+    if not is_cloud():
+        return
+
     retention_feature = team.organization.get_available_feature(AvailableFeature.SESSION_REPLAY_DATA_RETENTION)
     highest_retention_entitlement = parse_feature_to_entitlement(retention_feature)
 
     if highest_retention_entitlement is None:
         raise exceptions.APIException(detail="Invalid retention entitlement.")  # HTTP 500
-
-    if not validate_retention_period(new_retention_period):
-        raise exceptions.ValidationError(  # HTTP 400
-            f"Must provide a valid retention period. Options are: {VALID_RETENTION_PERIODS}."
-        )
 
     if retention_violates_entitlement(new_retention_period, highest_retention_entitlement):
         raise exceptions.PermissionDenied(  # HTTP 403

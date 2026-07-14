@@ -276,6 +276,33 @@ def team_api_test_factory():
                 ]
             )
 
+        @override_settings(CLOUD_DEPLOYMENT=None)
+        def test_update_session_recording_retention_on_self_hosted(self):
+            self.organization.available_product_features = []
+            self.organization.save()
+
+            response = self.client.patch("/api/environments/@current/", {"session_recording_retention_period": "5y"})
+
+            self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+            self.team.refresh_from_db()
+            self.assertEqual(self.team.session_recording_retention_period, "5y")
+
+        @override_settings(CLOUD_DEPLOYMENT="US")
+        def test_update_session_recording_retention_still_enforces_cloud_entitlement(self):
+            self.organization.available_product_features = [
+                {
+                    "key": AvailableFeature.SESSION_REPLAY_DATA_RETENTION,
+                    "name": "Session replay data retention",
+                    "limit": 3,
+                    "unit": "months",
+                }
+            ]
+            self.organization.save()
+
+            response = self.client.patch("/api/environments/@current/", {"session_recording_retention_period": "1y"})
+
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, response.json())
+
         def test_update_test_filter_default_checked(self):
             response = self.client.patch(
                 "/api/environments/@current/", {"test_account_filters_default_checked": "true"}
