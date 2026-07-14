@@ -136,13 +136,20 @@ RUN apt-get update && \
     && \
     rm -rf /var/lib/apt/lists/*
 
-# Install chrome-headless-shell via @puppeteer/browsers CLI.
-# This provides the minimal Chrome binary that supports HeadlessExperimental.
-# Tracks the stable channel so security patches flow in; the weekly scheduled rebuild
-# re-resolves it and the validation step below guards install-time breakage.
-RUN npx --yes @puppeteer/browsers install chrome-headless-shell@stable \
-    --path /opt/chrome-headless-shell && \
-    ln -s "$(find /opt/chrome-headless-shell -name chrome-headless-shell -type f | head -1)" /usr/local/bin/chrome-headless-shell
+# Chrome for Testing does not publish Linux ARM64 artifacts. Use Debian's native
+# headless-shell package there; keep the upstream stable-channel install on AMD64.
+ARG TARGETARCH
+RUN if [[ "${TARGETARCH:-$(dpkg --print-architecture)}" == "arm64" ]]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends chromium-headless-shell && \
+        rm -rf /var/lib/apt/lists/* && \
+        ln -s /usr/bin/chromium-headless-shell /usr/local/bin/chrome-headless-shell; \
+    else \
+        npx --yes @puppeteer/browsers install chrome-headless-shell@stable \
+            --path /opt/chrome-headless-shell && \
+        ln -s "$(find /opt/chrome-headless-shell -name chrome-headless-shell -type f | head -1)" \
+            /usr/local/bin/chrome-headless-shell; \
+    fi
 
 RUN groupadd -g 10001 posthog && \
     useradd -u 10001 -g posthog -m -d /home/posthog posthog && \
