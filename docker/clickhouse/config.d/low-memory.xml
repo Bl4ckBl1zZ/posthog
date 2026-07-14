@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Keep enough headroom below the 3 GiB container limit for allocator overhead. -->
+    <max_server_memory_usage>2684354560</max_server_memory_usage>
+    <max_concurrent_queries>20</max_concurrent_queries>
+
+    <!-- PostHog does not need the 512-thread default scheduler on a 4-vCPU host. -->
+    <background_schedule_pool_size>128</background_schedule_pool_size>
+    <max_thread_pool_free_size>64</max_thread_pool_free_size>
+
+    <!-- Favor bounded memory over warm-cache latency on this small deployment. -->
+    <mark_cache_size>268435456</mark_cache_size>
+    <primary_index_cache_size>268435456</primary_index_cache_size>
+    <uncompressed_cache_size>0</uncompressed_cache_size>
+</clickhouse>
