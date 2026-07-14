@@ -27,6 +27,7 @@ from posthog.api.routing import TeamAndOrgViewSetMixin
 from posthog.api.shared import TeamBasicSerializer
 from posthog.api.utils import action
 from posthog.auth import OAuthAccessTokenAuthentication, PersonalAPIKeyAuthentication, SessionAuthentication
+from posthog.cloud_utils import is_cloud
 from posthog.constants import AvailableFeature
 from posthog.decorators import disallow_if_impersonated
 from posthog.event_usage import report_user_action
@@ -1765,17 +1766,21 @@ class TeamSerializer(serializers.ModelSerializer, UserPermissionsSerializerMixin
         return instance
 
     def _verify_update_session_recording_retention_period(self, instance: Team, new_retention_period: str):
-        retention_feature = instance.organization.get_available_feature(AvailableFeature.SESSION_REPLAY_DATA_RETENTION)
-        highest_retention_entitlement = parse_feature_to_entitlement(retention_feature)
-
-        if highest_retention_entitlement is None:
-            raise exceptions.APIException(detail="Invalid retention entitlement.")  # HTTP 500
-
         # Should be validated already, but let's be extra sure to avoid IndexErrors below
         if not validate_retention_period(new_retention_period):
             raise exceptions.ValidationError(  # HTTP 400
                 f"Must provide a valid retention period. Options are: {VALID_RETENTION_PERIODS}."
             )
+
+        # Self-hosted operators pay for and manage their own object-storage retention.
+        if not is_cloud():
+            return
+
+        retention_feature = instance.organization.get_available_feature(AvailableFeature.SESSION_REPLAY_DATA_RETENTION)
+        highest_retention_entitlement = parse_feature_to_entitlement(retention_feature)
+
+        if highest_retention_entitlement is None:
+            raise exceptions.APIException(detail="Invalid retention entitlement.")  # HTTP 500
 
         if retention_violates_entitlement(new_retention_period, highest_retention_entitlement):
             raise exceptions.PermissionDenied(  # HTTP 403

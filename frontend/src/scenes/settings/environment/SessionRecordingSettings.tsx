@@ -21,6 +21,7 @@ import { SESSION_RECORDING_OPT_OUT_SURVEY_ID, TeamMembershipLevel } from 'lib/co
 import { LemonLabel } from 'lib/lemon-ui/LemonLabel/LemonLabel'
 import { isObject } from 'lib/utils/guards'
 import { organizationLogic } from 'scenes/organizationLogic'
+import { preflightLogic } from 'scenes/PreflightCheck/preflightLogic'
 import { InternalMultipleChoiceSurvey } from 'scenes/session-recordings/components/InternalSurvey/InternalMultipleChoiceSurvey'
 import { getMaskingConfigFromLevel, getMaskingLevelFromConfig } from 'scenes/session-recordings/utils'
 import { teamLogic } from 'scenes/teamLogic'
@@ -326,6 +327,7 @@ export function ReplayDataRetentionSettings(): JSX.Element {
     const { updateCurrentTeam } = useActions(teamLogic)
     const { currentTeam, currentTeamLoading } = useValues(teamLogic)
     const { currentOrganization } = useValues(organizationLogic)
+    const { isCloud } = useValues(preflightLogic)
     const restrictedReason = useRestrictedArea({
         scope: RestrictionScope.Project,
         minimumAccessLevel: TeamMembershipLevel.Admin,
@@ -334,11 +336,13 @@ export function ReplayDataRetentionSettings(): JSX.Element {
     const retentionFeature = currentOrganization?.available_product_features?.find(
         (feature) => feature.key === 'session_replay_data_retention'
     )
+    const isSelfHosted = isCloud === false
     const hasMaxRetentionEntitlement =
-        retentionFeature &&
-        retentionFeature?.unit?.startsWith('month') &&
-        retentionFeature?.limit &&
-        retentionFeature?.limit >= 60
+        isSelfHosted ||
+        (retentionFeature &&
+            retentionFeature?.unit?.startsWith('month') &&
+            retentionFeature?.limit &&
+            retentionFeature?.limit >= 60)
     const currentRetention = currentTeam?.session_recording_retention_period || '30d'
 
     const renderOptions = (loading: boolean): LemonSegmentedButtonOption<SessionRecordingRetentionPeriod>[] => {
@@ -355,21 +359,21 @@ export function ReplayDataRetentionSettings(): JSX.Element {
                 value: '90d' as SessionRecordingRetentionPeriod,
                 icon: <IconHourglass />,
                 label: '90 days',
-                disabledReason: 'Only available on the pay-as-you-go plan',
+                disabledReason: isSelfHosted ? disabledReason : 'Only available on the pay-as-you-go plan',
                 'data-attr': 'session-recording-retention-button-90d',
             },
             {
                 value: '1y' as SessionRecordingRetentionPeriod,
                 icon: <IconCalendar />,
                 label: '1 year (365 days)',
-                disabledReason: 'Only available with the Boost or Scale packages',
+                disabledReason: isSelfHosted ? disabledReason : 'Only available with the Boost or Scale packages',
                 'data-attr': 'session-recording-retention-button-1y',
             },
             {
                 value: '5y' as SessionRecordingRetentionPeriod,
                 icon: <IconInfinity />,
                 label: '5 years (1825 days)',
-                disabledReason: 'Only available with the Enterprise package',
+                disabledReason: isSelfHosted ? disabledReason : 'Only available with the Enterprise package',
                 'data-attr': 'session-recording-retention-button-5y',
             },
         ]
@@ -424,7 +428,7 @@ export function ReplayDataRetentionSettings(): JSX.Element {
                 options={renderOptions(currentTeamLoading)}
                 disabledReason={restrictedReason ?? undefined}
             />
-            {!hasMaxRetentionEntitlement && (
+            {isCloud && !hasMaxRetentionEntitlement && (
                 <p className="mt-4">
                     Need longer data retention? Head over to our{' '}
                     <Link to={urls.organizationBilling()} target="_blank">
