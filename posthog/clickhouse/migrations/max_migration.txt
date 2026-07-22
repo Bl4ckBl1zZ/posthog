@@ -1,1 +1,1 @@
-0288_sanitize_query_log_archive_log_comment
+0290_trace_spans_and_attributes
