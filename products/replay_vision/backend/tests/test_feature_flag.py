@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from unittest.mock import MagicMock, patch
@@ -7,13 +8,17 @@ from django.test import override_settings
 
 from products.replay_vision.backend.feature_flag import is_replay_vision_enabled
 
+if TYPE_CHECKING:
+    from posthog.models.team.team import Team
+    from posthog.models.user import User
+
 
 @override_settings(SELF_CAPTURE=True)
 def test_self_hosted_replay_vision_flag_uses_local_evaluation() -> None:
     client = MagicMock()
     client.feature_enabled.return_value = True
-    user = SimpleNamespace(distinct_id="user-1", uuid=UUID("00000000-0000-0000-0000-000000000001"))
-    team = SimpleNamespace(id=3, organization_id=UUID("00000000-0000-0000-0000-000000000002"))
+    user = cast("User", SimpleNamespace(distinct_id="user-1", uuid=UUID("00000000-0000-0000-0000-000000000001")))
+    team = cast("Team", SimpleNamespace(id=3, organization_id=UUID("00000000-0000-0000-0000-000000000002")))
 
     with patch(
         "products.replay_vision.backend.feature_flag._self_hosted_flag_client",

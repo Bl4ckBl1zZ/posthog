@@ -12,12 +12,14 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 
 import anthropic
 import structlog
+from anthropic.types import MessageParam, ToolParam
+from anthropic.types.tool_choice_param import ToolChoiceParam
 from asgiref.sync import sync_to_async
 from pydantic import BaseModel, ValidationError
 
@@ -157,12 +159,15 @@ async def _run_anthropic_step(
                 model=model,
                 max_tokens=4096,
                 system=system,
-                messages=messages,  # type: ignore[arg-type]
-                tools=tools,  # type: ignore[arg-type]
-                tool_choice=(
-                    {"type": "tool", "name": result_tool_name}
-                    if round_number == _MAX_TOOL_ROUNDS - 1
-                    else {"type": "any"}
+                messages=cast(list[MessageParam], messages),
+                tools=cast(list[ToolParam], tools),
+                tool_choice=cast(
+                    ToolChoiceParam,
+                    (
+                        {"type": "tool", "name": result_tool_name}
+                        if round_number == _MAX_TOOL_ROUNDS - 1
+                        else {"type": "any"}
+                    ),
                 ),
                 metadata={"user_id": replay_vision_distinct_id(team_id)},
             )
