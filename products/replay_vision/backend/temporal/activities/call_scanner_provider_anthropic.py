@@ -192,10 +192,10 @@ async def _run_anthropic_step(
         parsed_result: BaseModel | None = None
         validation_error: str | None = None
         for block in response.content:
-            if getattr(block, "type", None) != "tool_use":
+            if block.type != "tool_use":
                 continue
-            name = str(getattr(block, "name", ""))
-            tool_input = dict(getattr(block, "input", None) or {})
+            name = block.name
+            tool_input = dict(block.input)
             if name == GET_EVENTS_TOOL_NAME:
                 result = dispatch(tool_input)
                 tool_results.append(_tool_result(block.id, result))
