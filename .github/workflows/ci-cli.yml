@@ -25,7 +25,7 @@ concurrency:
 jobs:
     tests:
         name: Run tests
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         defaults:
             run:
@@ -48,7 +48,7 @@ jobs:
 
     clippy:
         name: Clippy
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         defaults:
             run:
@@ -67,7 +67,7 @@ jobs:
 
     format:
         name: Format
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         defaults:
             run:
@@ -86,7 +86,7 @@ jobs:
 
     api-cli-release-bundle:
         name: API CLI release bundle
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

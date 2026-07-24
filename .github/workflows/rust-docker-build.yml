@@ -36,7 +36,7 @@ concurrency:
 jobs:
     affected:
         name: compute affected images
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         # Skip on workflow_dispatch — always build everything (escape hatch)
         if: >-
@@ -111,7 +111,7 @@ jobs:
 
     deploy:
         name: deploy ${{ matrix.release }}
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: build-images
         if: github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/master'

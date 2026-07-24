@@ -28,7 +28,7 @@ env:
 
 jobs:
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run LLM Services checks
         outputs:
@@ -56,7 +56,7 @@ jobs:
         name: LLM Gateway Tests
         needs: changes
         if: needs.changes.outputs.llm_gateway == 'true'
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 15
         defaults:
             run:
@@ -131,7 +131,7 @@ jobs:
     llm_services_tests:
         needs: [changes, llm-gateway]
         name: LLM Services Tests Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # always(), not !cancelled(): a skipped required check is treated as a pass by
         # branch protection, so on cancellation the gate must run and emit an explicit

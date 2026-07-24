@@ -53,7 +53,7 @@ jobs:
             github.event_name == 'issue_comment' &&
             github.event.issue.pull_request &&
             startsWith(github.event.comment.body, '/pr-canary')
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             pull-requests: write
@@ -287,7 +287,7 @@ jobs:
                 (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'canary-flags')) ||
                 (needs.handle_comment.result == 'success' && needs.handle_comment.outputs.should_build == 'true')
             )
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             contents: read

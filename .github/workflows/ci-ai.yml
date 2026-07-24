@@ -14,7 +14,7 @@ jobs:
     eval:
         timeout-minutes: 45
         name: AI evals / ${{ matrix.group }}
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         env:
             DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USER }}
             DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -148,7 +148,7 @@ jobs:
     eval-summary:
         timeout-minutes: 5
         name: AI evals / summary
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         needs: eval
         if: always() && needs.eval.result != 'skipped'
 
