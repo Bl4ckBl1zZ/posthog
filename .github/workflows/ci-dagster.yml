@@ -45,7 +45,7 @@ jobs:
     # actually import — prevents silent drift where a new import slips in
     # without a matching filter entry.
     validate-paths:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Validate dagster path filter coverage
         if: github.event_name != 'merge_group'
@@ -61,7 +61,7 @@ jobs:
     # Job to decide if we should run dagster ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run dagster checks
         if: github.event_name != 'merge_group'
@@ -461,7 +461,7 @@ jobs:
     dagster_tests:
         needs: [dagster]
         name: Dagster Tests Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         steps:
