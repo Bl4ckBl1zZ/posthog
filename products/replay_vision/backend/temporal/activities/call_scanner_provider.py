@@ -89,7 +89,12 @@ async def _call_scanner_provider(inputs: CallScannerProviderInputs) -> ScannerCa
         )
     scanner = scanner_from_snapshot(snapshot)
 
-    preamble_text = scanner.preamble(team_name=team_name, session_metadata=llm_inputs.metadata.as_prompt_dict())
+    preamble_text = scanner.preamble(
+        team_name=team_name,
+        session_metadata=llm_inputs.metadata.as_prompt_dict(),
+        navigation=[entry.model_dump() for entry in llm_inputs.navigation],
+        navigation_dropped=llm_inputs.navigation_dropped,
+    )
     if str(getattr(settings, "REPLAY_VISION_PROVIDER", "gemini")).lower() == "anthropic":
         if inputs.asset_id is None:
             raise ScannerFailureError(
