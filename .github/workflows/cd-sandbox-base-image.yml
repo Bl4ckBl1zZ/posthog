@@ -15,7 +15,7 @@ on:
 
 jobs:
     changes:
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: github.repository_owner == 'PostHog'
         name: Determine if sandbox image needs to be built
@@ -54,7 +54,7 @@ jobs:
                 github.event_name == 'workflow_dispatch' ||
                 contains(github.event.pull_request.labels.*.name, 'build-tasks-sandbox-image')
             )
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 30
         permissions:
             contents: read
@@ -275,7 +275,7 @@ jobs:
     sandbox_base_image_check:
         needs: [changes, build_skills, sandbox_base_build]
         name: Sandbox Base Image Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         permissions: {}
