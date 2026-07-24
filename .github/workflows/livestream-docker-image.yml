@@ -72,7 +72,7 @@ jobs:
                   project: '87b1ch2t7h'
 
     deploy:
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: build
         if: github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/master'
