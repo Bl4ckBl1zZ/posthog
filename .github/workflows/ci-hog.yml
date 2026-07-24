@@ -20,7 +20,7 @@ jobs:
     # Job to decide if we should run backend ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run Hog checks
         permissions:
@@ -61,7 +61,7 @@ jobs:
         needs: changes
         timeout-minutes: 30
         name: Hog tests
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         if: needs.changes.outputs.hog == 'true'
         outputs:
             committed-version: ${{ steps.check-package-version.outputs.committed-version }}
@@ -159,7 +159,7 @@ jobs:
 
     release-hogvm:
         name: Release new HogVM TypeScript version
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: hog-tests
         if: needs.hog-tests.outputs.is-new-version == 'true'
