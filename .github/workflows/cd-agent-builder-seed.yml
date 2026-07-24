@@ -47,7 +47,7 @@ jobs:
         # (CD_DEPLOY_ENABLED) and only from master — workflow_dispatch can target
         # any ref, and an unmerged branch must never run with the prod PAT.
         if: github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/master'
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 15
         env:
             POSTHOG_API: https://us.posthog.com
