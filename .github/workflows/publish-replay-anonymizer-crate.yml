@@ -22,7 +22,7 @@ concurrency:
 jobs:
     check-version-bump:
         name: Check version was bumped
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: github.event_name == 'pull_request'
         permissions:
@@ -80,7 +80,7 @@ jobs:
 
     publish:
         name: Publish to crates.io
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         if: github.event_name == 'push' && github.repository == 'PostHog/posthog'
         permissions:
