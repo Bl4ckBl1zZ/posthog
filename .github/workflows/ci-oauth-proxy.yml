@@ -15,7 +15,7 @@ permissions:
 
 jobs:
     changes:
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run oauth-proxy checks
         outputs:
@@ -41,7 +41,7 @@ jobs:
 
     build-and-test:
         name: Build & Test
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         needs: changes
         if: needs.changes.outputs.oauth-proxy == 'true'
@@ -63,7 +63,7 @@ jobs:
     oauth_proxy_tests:
         needs: [changes, build-and-test]
         name: OAuth Proxy Tests Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         steps:

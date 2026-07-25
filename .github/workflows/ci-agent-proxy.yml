@@ -16,7 +16,7 @@ permissions:
 
 jobs:
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run agent-proxy checks
         outputs:
@@ -44,7 +44,7 @@ jobs:
         name: Agent Proxy checks
         needs: changes
         if: needs.changes.outputs.agent_proxy == 'true'
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -98,7 +98,7 @@ jobs:
     agent_proxy_ci:
         needs: [changes, agent-proxy]
         name: Agent Proxy CI Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # always(), not !cancelled(): a skipped required check is treated as a pass by
         # branch protection, so on cancellation the gate must run and emit an explicit

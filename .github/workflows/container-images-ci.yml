@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: github.repository == 'PostHog/posthog'
         name: Determine need to run Docker checks
@@ -100,7 +100,7 @@ jobs:
     dockerignore_guard:
         needs: changes
         name: Guard against dropped image files
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         # Needs no secrets or docker login, so unlike the image build below it runs on fork PRs too.
         if: github.event_name == 'pull_request' && needs.changes.outputs.dockerignore_changed == 'true'
@@ -163,7 +163,7 @@ jobs:
     lint:
         needs: changes
         name: Lint changed Dockerfiles
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             contents: read

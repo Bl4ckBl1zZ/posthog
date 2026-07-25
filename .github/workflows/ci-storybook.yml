@@ -24,7 +24,7 @@ jobs:
     # Job to decide if we should run storybook ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # A draft PR labeled `no-ci` skips this workflow entirely (prototypes):
         # every other job needs this one, and the gates treat skipped as success.
@@ -269,7 +269,7 @@ jobs:
 
     vr-setup:
         name: Create Visual Review run
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: [changes, build-storybook, select-stories]
         # always() so vr-setup still runs when select-stories is skipped (ready PRs
@@ -536,7 +536,7 @@ jobs:
     # Catches flaky snapshots before they land on master.
     flake-verification:
         name: Storybook flake verification
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         needs: [changes, build-storybook]
         if: needs.changes.outputs.frontend == 'true' && github.event_name == 'pull_request'
         timeout-minutes: 45
@@ -615,7 +615,7 @@ jobs:
     visual_regression_tests:
         needs: [changes, build-storybook, visual-regression, vr-setup, vr-complete]
         name: Visual regression tests pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         steps:
@@ -659,7 +659,7 @@ jobs:
 
     vr-complete:
         name: Complete Visual Review run
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 15
         needs: [visual-regression, vr-setup]
         # always() so the skipped select-stories job (transitively in the needs
@@ -721,7 +721,7 @@ jobs:
     calculate-running-time:
         name: Calculate running time
         needs: [visual-regression, visual_regression_tests, changes]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
             always() && github.actor != 'dependabot[bot]' &&
@@ -762,7 +762,7 @@ jobs:
     capture-story-selection:
         name: Capture story selection
         needs: [select-stories]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # select-stories only runs on internal draft PRs; fire only when it produced a
         # decision. DevEx project only; continue-on-error so telemetry never reds CI.
@@ -802,7 +802,7 @@ jobs:
     # still the merge gate.
     select-stories:
         name: Story selection
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: [changes, build-storybook]
         if: |
@@ -996,7 +996,7 @@ jobs:
         # only (master push), so the secret token never runs in a PR-controlled context; the
         # uploader is a pinned external action, not a local one.
         needs: [visual-regression]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         continue-on-error: true
         timeout-minutes: 10
         # Avoid spinning a runner when visual-regression was skipped, while still

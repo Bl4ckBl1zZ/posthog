@@ -115,7 +115,7 @@ jobs:
     # `preview`/`teardown` concurrency group, so it can't cancel an active build.
     decide:
         name: '[Optional] decide eligibility'
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             contents: read
@@ -218,7 +218,7 @@ jobs:
         name: '[Optional] announce build'
         needs: decide
         if: needs.decide.outputs.build == 'true'
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             contents: read
@@ -286,7 +286,7 @@ jobs:
         name: '[Optional] build PR frontend'
         needs: decide
         if: needs.decide.outputs.build == 'true'
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 30
         permissions:
             contents: read
@@ -409,7 +409,7 @@ jobs:
         concurrency:
             group: hogbox-preview-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
             cancel-in-progress: true
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 40
         permissions:
             contents: read
@@ -724,7 +724,7 @@ jobs:
         concurrency:
             group: hogbox-preview-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
             cancel-in-progress: true
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         permissions:
             contents: read

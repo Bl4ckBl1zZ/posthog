@@ -485,7 +485,7 @@ jobs:
             github.event.pull_request.draft == true &&
             !contains(github.event.pull_request.labels.*.name, 'run-ci-backend') &&
             needs.changes.outputs.backend == 'true'
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         outputs:
             mode: ${{ steps.classify.outputs.mode }}
@@ -1143,7 +1143,7 @@ jobs:
             contents: read
             actions: write
         name: Cancel Backend CI after repo check failure
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         steps:
             - name: Cancel run
               env:
@@ -1168,7 +1168,7 @@ jobs:
             github.event.pull_request.head.repo.full_name == github.repository
         timeout-minutes: 5
         name: Validate product.yaml owners (ubuntu-latest)
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -2080,7 +2080,7 @@ jobs:
             contents: read
             actions: write
         name: Cancel Backend CI after OpenAPI check failure
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         steps:
             - name: Cancel run
               env:
@@ -3112,7 +3112,7 @@ jobs:
         # Only in UPDATE mode - CHECK mode verifies snapshots match exactly
         # Run even if some matrix jobs failed (to commit snapshots from passing jobs)
         if: ${{ !cancelled() && needs.detect-snapshot-mode.outputs.mode == 'update' && needs.changes.outputs.backend == 'true' && github.event.pull_request.head.repo.full_name == 'PostHog/posthog' }}
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         permissions:
             contents: write
@@ -3193,7 +3193,7 @@ jobs:
                 repo-checks,
             ]
         name: Django Tests Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         # Headroom for downloading every shard's JUnit for the failure rollup.
         timeout-minutes: 8
         # Intentional always(): this required gate must inspect failed and cancelled
@@ -3384,7 +3384,7 @@ jobs:
         name: Test selection verdict
         # changes is skipped on no-ci drafts — no tests ran, nothing to verdict.
         if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.result != 'skipped' }}
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
         permissions:
             contents: read
@@ -3473,7 +3473,7 @@ jobs:
     calculate-running-time:
         name: Calculate running time
         needs: [django_tests]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
         if: >-
@@ -3516,7 +3516,7 @@ jobs:
     capture-test-selection:
         name: Capture test selection
         needs: [select-tests]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         # select-tests only runs on internal draft PRs; fire only when it actually
         # produced a decision. DevEx project only, mirroring monitor-github-rate-limit;
@@ -3559,7 +3559,7 @@ jobs:
     report-test-timings:
         name: Report per-test traces
         needs: [django_tests]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         continue-on-error: true
         timeout-minutes: 10
         # Runs on every attempt: a re-run passing what an earlier attempt failed is the same-commit
@@ -3624,7 +3624,7 @@ jobs:
     backend-coverage-report:
         name: Backend coverage report
         needs: [turbo-tests, django_tests]
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         continue-on-error: true # report-only, never block a PR
         timeout-minutes: 10
         # Pinned job-level: this job runs PR-head-controlled scripts with github.token, so its

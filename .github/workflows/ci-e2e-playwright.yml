@@ -71,7 +71,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         # 7 not 5: the debounce step below sleeps up to 60s, so widen the budget to
         # keep ample headroom. A timeout here skips Playwright, which the aggregator
         # would count as a pass.
@@ -318,7 +318,7 @@ jobs:
             && github.event.action == 'synchronize'
             && github.event.pull_request.draft != true
             && github.event.pull_request.head.repo.full_name == github.repository
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         outputs:
             mode: ${{ steps.classify.outputs.mode }}
@@ -1045,7 +1045,7 @@ jobs:
 
     capture-run-time:
         name: Capture run time
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         needs: [changes, select-specs, playwright, playwright_tests]
         if: # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
@@ -1120,7 +1120,7 @@ jobs:
 
     vr-complete:
         name: Complete Visual Review run
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 15
         needs: [playwright]
         if: needs.playwright.outputs.vr_run_id != '' && needs.playwright.result == 'success'
@@ -1158,7 +1158,7 @@ jobs:
     playwright_tests:
         needs: [playwright, vr-complete]
         name: Playwright tests pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         steps:

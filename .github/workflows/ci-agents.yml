@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         name: Determine need to run agent services checks
         permissions:
@@ -277,7 +277,7 @@ jobs:
     agent_ci_pass:
         needs: [typecheck-lint, unit-tests, e2e-tests]
         name: Agent services CI Pass
-        runs-on: ubuntu-latest
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 5
         if: always()
         steps:

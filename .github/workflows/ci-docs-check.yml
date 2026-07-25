@@ -33,7 +33,7 @@ permissions:
 jobs:
     check-docs-generated:
         name: Check docs are up to date
-        runs-on: ubuntu-24.04
+        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
         timeout-minutes: 10
 
         steps:
