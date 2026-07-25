@@ -9,6 +9,8 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from posthog.utils import _build_flag_provider
+
 if TYPE_CHECKING:
     from posthog.models.team.team import Team
     from posthog.models.user import User
@@ -16,14 +18,10 @@ if TYPE_CHECKING:
 REPLAY_VISION_FEATURE_FLAG = "replay-vision"
 # Gates the "and then…" VisionAction sub-feature, separate from product access above.
 REPLAY_VISION_ACTIONS_FEATURE_FLAG = "replay-vision-actions"
-# Gates the quality sub-feature (ratings + prompt suggestions), separate from product access above.
-REPLAY_VISION_QUALITY_FEATURE_FLAG = "replay-vision-quality"
 
 
 @lru_cache(maxsize=1)
 def _self_hosted_flag_client() -> posthoganalytics.Client:
-    from posthog.utils import _build_flag_provider
-
     client = posthoganalytics.Client(
         "self-hosted-local-feature-evaluation",
         host=settings.SITE_URL,
@@ -61,10 +59,6 @@ def is_replay_vision_actions_enabled(user: "User", team: "Team") -> bool:
     return _vision_flag_enabled(REPLAY_VISION_ACTIONS_FEATURE_FLAG, user, team)
 
 
-def is_replay_vision_quality_enabled(user: "User", team: "Team") -> bool:
-    return _vision_flag_enabled(REPLAY_VISION_QUALITY_FEATURE_FLAG, user, team)
-
-
 class ReplayVisionEnabledPermission(BasePermission):
     """Hide Vision endpoints behind the `replay-vision` flag: 404 (not 403) when off."""
 
@@ -79,14 +73,5 @@ class ReplayVisionActionsEnabledPermission(BasePermission):
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if not is_replay_vision_actions_enabled(request.user, view.team):  # type: ignore[arg-type, attr-defined]
-            raise NotFound()
-        return True
-
-
-class ReplayVisionQualityEnabledPermission(BasePermission):
-    """Hide Vision *quality* endpoints behind the `replay-vision-quality` flag: 404 (not 403) when off."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        if not is_replay_vision_quality_enabled(request.user, view.team):  # type: ignore[arg-type, attr-defined]
             raise NotFound()
         return True
