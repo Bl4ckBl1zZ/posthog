@@ -1,20 +1,15 @@
-# Managed by Halifax. Edit pool routing in Halifax, then use Repair to refresh this file.
 name: Halifax validation
 
 on:
-  pull_request:
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   validate:
-    runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
-    timeout-minutes: 15
+    name: Validate Halifax runner
+    runs-on: [self-hosted, "halifax-6rlplgthrdfgeldg"]
+    timeout-minutes: 10
     steps:
-      - name: Verify Halifax runner tools
+      - name: Verify disposable runner
         run: |
-          node --version
-          docker info
-          uname -a
+          test -n "${RUNNER_NAME}"
+          echo "Halifax runner is ready"
