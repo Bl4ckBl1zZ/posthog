@@ -16,5 +16,7 @@ operations = [
     run_sql_with_exceptions(
         f"ALTER TABLE {QUERY_LOG_ARCHIVE_OPS_MV} MODIFY QUERY\n{MV_SELECT_SQL_OPS}",
         node_roles=ALL_ROLES,
+        sharded=False,
+        is_alter_on_replicated_table=False,
     ),
 ]
