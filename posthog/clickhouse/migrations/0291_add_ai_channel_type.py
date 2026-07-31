@@ -12,7 +12,7 @@ from posthog.models.channel_type.sql import (
 # the perplexity/phind/you.com/andisearch/komo.ai rows reclassified from Search to AI. Nothing reads the
 # table at query time (all reads go through channel_definition_dict), so truncate + full reinsert is safe:
 # the dictionary serves its cached snapshot until the explicit reload. Writes run on one host
-# (is_alter_on_replicated_table) and replication fans out.
+# (is_alter_on_replicated_table), then every replica catches up before reloading its local dictionary.
 operations = [
     run_sql_with_exceptions(
         f"TRUNCATE TABLE IF EXISTS {CHANNEL_DEFINITION_TABLE_NAME}",
@@ -23,6 +23,10 @@ operations = [
         CHANNEL_DEFINITION_DATA_SQL(),
         node_roles=[NodeRole.DATA],
         is_alter_on_replicated_table=True,
+    ),
+    run_sql_with_exceptions(
+        f"SYSTEM SYNC REPLICA {CHANNEL_DEFINITION_TABLE_NAME} STRICT",
+        node_roles=[NodeRole.DATA],
     ),
     run_sql_with_exceptions(
         f"SYSTEM RELOAD DICTIONARY {CHANNEL_DEFINITION_DICTIONARY_NAME}",
@@ -46,6 +50,10 @@ if settings.CLOUD_DEPLOYMENT == "US":
             CHANNEL_DEFINITION_DATA_SQL(),
             node_roles=[NodeRole.SESSIONS],
             is_alter_on_replicated_table=True,
+        ),
+        run_sql_with_exceptions(
+            f"SYSTEM SYNC REPLICA {CHANNEL_DEFINITION_TABLE_NAME} STRICT",
+            node_roles=[NodeRole.SESSIONS],
         ),
     ]
 if settings.CLOUD_DEPLOYMENT in ("US", "EU"):
