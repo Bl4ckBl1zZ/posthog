@@ -37,12 +37,20 @@ Resolve them on the branch and mark the PR ready.
 
 To sync early, or to sync a different upstream ref, run the workflow from the Actions tab.
 
-### Optional: let the sync PR run the repo's checks
+### Required: the FORK_SYNC_TOKEN secret
 
-By default the sync uses the built-in `GITHUB_TOKEN`, which never triggers workflows. The
-sync's own `verify` job is then the only gate. To have the sync PR run the repo's normal
-checks as well, add a personal access token with `repo` scope as the `FORK_SYNC_TOKEN`
-repository secret.
+The sync needs a personal access token with **`repo` and `workflow` scope**, stored as the
+`FORK_SYNC_TOKEN` repository secret. Without it the workflow fails on its first step.
+
+Merging upstream always rewrites files under `.github/workflows/`, and GitHub refuses to let
+the built-in `GITHUB_TOKEN` push those. No `permissions:` block can grant it the `workflow`
+scope, so a PAT (or a GitHub App token with `workflows: write`) is the only option.
+
+A PAT has a second benefit: pushes made with `GITHUB_TOKEN` never trigger workflows, so the
+sync PR would otherwise run no checks beyond the sync's own `verify` job.
+
+Create it at **Settings > Developer settings > Personal access tokens**, then add it under
+**Settings > Secrets and variables > Actions** in this repository.
 
 ## CI policy
 
