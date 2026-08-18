@@ -17,8 +17,7 @@ name: ReviewHog
 # Sanctioned use — no job checks out or runs PR code; see the Safety note above.
 # nosemgrep: github-actions-pull-request-target
 on:
-    pull_request_target:
-        types: [labeled]
+    workflow_dispatch:
 
 # No GitHub permissions by default — the trigger job only makes an outbound authenticated request;
 # the review is fetched and published server-side via the PostHog GitHub App installation token.

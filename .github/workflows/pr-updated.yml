@@ -8,7 +8,7 @@ on:
 jobs:
     lint-pr:
         name: Validate PR title against Conventional Commits
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read

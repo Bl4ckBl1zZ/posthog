@@ -10,19 +10,14 @@
 name: Build Livestream TUI
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - 'livestream/tui/**'
-            - '.github/workflows/build-livestream-tui.yml'
+    workflow_dispatch:
 
 permissions:
     contents: write
 
 jobs:
     build:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         steps:

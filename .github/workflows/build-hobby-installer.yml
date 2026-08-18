@@ -10,20 +10,14 @@
 name: Build Hobby Installer
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - 'bin/hobby-installer/**'
-            - '!bin/hobby-installer/README.md'
-            - '.github/workflows/build-hobby-installer.yml'
+    workflow_dispatch:
 
 permissions:
     contents: write
 
 jobs:
     build:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
 
         steps:

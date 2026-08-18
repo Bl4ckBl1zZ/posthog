@@ -19,14 +19,6 @@ on:
                 description: 'Comma-separated image names to build (empty = all)'
                 type: string
                 default: ''
-    pull_request:
-        types: [labeled, synchronize]
-        paths:
-            - 'rust/**'
-            - 'proto/**'
-            - '.github/workflows/rust-smoke-test-build.yml'
-            - '.github/workflows/_rust-build-images.yml'
-            - '.github/rust-images.yml'
 
 concurrency:
     group: rust-smoke-test-${{ github.event.pull_request.number || github.run_id }}
@@ -35,7 +27,7 @@ concurrency:
 jobs:
     authorize:
         name: authorize smoke test
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: |
             github.event_name == 'workflow_dispatch' ||
@@ -47,7 +39,7 @@ jobs:
 
     resolve-filter:
         name: resolve image filter
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 2
         if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
         permissions: {}

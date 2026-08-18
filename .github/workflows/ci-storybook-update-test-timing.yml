@@ -7,14 +7,6 @@ on:
                 description: 'Storybook CI run ID (leave empty to use latest successful master run)'
                 required: false
                 type: string
-    schedule:
-        # Daily at 04:00 UTC: regenerate common/storybook/storybook-timings.json from the
-        # JUnit artifacts of a recent successful master Storybook run and open/update a PR. The
-        # manifest drives greedy bin-packing across the 16 visual-regression shards in
-        # common/storybook/test-sequencer.js; balance decays as story files land without timings,
-        # so a periodic refresh keeps the slowest shard close to the mean. Cheap (no story
-        # execution — just an artifact download + XML parse).
-        - cron: '0 4 * * *'
 
 permissions:
     contents: write
@@ -24,7 +16,7 @@ permissions:
 jobs:
     collect-and-refresh:
         name: Refresh storybook timing manifest from CI artifacts
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 15
         steps:
             - name: Guard — only run on master

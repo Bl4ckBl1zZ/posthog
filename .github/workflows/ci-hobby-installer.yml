@@ -1,10 +1,7 @@
 name: Hobby Installer
 
 on:
-    pull_request:
-        paths:
-            - '.github/workflows/ci-hobby-installer.yml'
-            - 'bin/hobby-installer/**'
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -15,7 +12,7 @@ permissions:
 
 jobs:
     lint-and-test:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         steps:

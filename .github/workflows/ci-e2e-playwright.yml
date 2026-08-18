@@ -5,12 +5,6 @@
 #
 name: E2E CI Playwright
 on:
-    pull_request:
-        # Draft PRs skip E2E entirely — the broad path filter below matches nearly
-        # every code PR, and a full ~25-minute stack boot per draft push is the
-        # remaining big per-PR cost. The ready-for-review full run is the merge
-        # gate; use workflow_dispatch to force a run on a draft.
-        types: [opened, synchronize, reopened, ready_for_review]
     workflow_dispatch:
         inputs:
             playwright_retries:
@@ -18,9 +12,6 @@ on:
                 required: false
                 type: string
                 default: ''
-    push:
-        branches:
-            - master
 
 permissions:
     contents: read
@@ -71,7 +62,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # 7 not 5: the debounce step below sleeps up to 60s, so widen the budget to
         # keep ample headroom. A timeout here skips Playwright, which the aggregator
         # would count as a pass.
@@ -318,7 +309,7 @@ jobs:
             && github.event.action == 'synchronize'
             && github.event.pull_request.draft != true
             && github.event.pull_request.head.repo.full_name == github.repository
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
             mode: ${{ steps.classify.outputs.mode }}
@@ -461,7 +452,7 @@ jobs:
         # 8-core depot: 18% avg / 30% peak memory observed on 16-core runs (#46853 noted
         # the workload "is not resource constrained" even after sharding was removed).
         # Talk to #team-devex before changing.
-        runs-on: depot-ubuntu-24.04-8
+        runs-on: ubuntu-24.04
         timeout-minutes: 45
         permissions:
             contents: read
@@ -1045,7 +1036,7 @@ jobs:
 
     capture-run-time:
         name: Capture run time
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         needs: [changes, select-specs, playwright, playwright_tests]
         if: # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
@@ -1120,7 +1111,7 @@ jobs:
 
     vr-complete:
         name: Complete Visual Review run
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         needs: [playwright]
         if: needs.playwright.outputs.vr_run_id != '' && needs.playwright.result == 'success'
@@ -1158,7 +1149,7 @@ jobs:
     playwright_tests:
         needs: [playwright, vr-complete]
         name: Playwright tests pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

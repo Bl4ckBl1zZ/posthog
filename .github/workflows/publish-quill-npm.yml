@@ -26,7 +26,7 @@ concurrency:
 jobs:
     publish:
         name: Build and publish
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         environment: Release
         permissions:

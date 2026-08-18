@@ -1,8 +1,7 @@
 name: PR Approval Agent
 
 on:
-    pull_request:
-        types: [labeled, ready_for_review, synchronize]
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -34,7 +33,7 @@ jobs:
               || needs.decide-delta.outputs.run_review == 'true'
               || needs.decide-delta.result == 'failure'
             )
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # Budget for the in-flight-bot-review wait (5 min of sleeps plus the
         # per-poll refetches, so wall-clock exceeds it) plus the LLM review —
         # see BOT_REVIEW_WAIT_BUDGET_SECONDS in review_pr.py. The cap costs
@@ -254,7 +253,7 @@ jobs:
             && !contains(github.event.pull_request.user.login, '[bot]')
             && github.event.pull_request.user.login != 'posthog-bot'
             && contains(github.event.pull_request.labels.*.name, 'stamphog')
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
             dismiss_approval: ${{ steps.decide.outputs.dismiss_approval }}
@@ -351,7 +350,7 @@ jobs:
               || needs.decide-delta.result == 'failure'
               || needs.decide-delta.result == 'skipped'
             )
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
 
         steps:
@@ -412,7 +411,7 @@ jobs:
               github.event.label.name == 'stamphog'
               || (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'stamphog'))
             )
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
 
         steps:

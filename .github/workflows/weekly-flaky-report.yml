@@ -16,8 +16,6 @@ name: Weekly flaky test report
 #   - secrets.SLACK_DEVEX_BOT_TOKEN — the existing DevEx Slack bot.
 
 on:
-    schedule:
-        - cron: '10 13 * * 1' # Mondays 13:10 UTC, staggered after the CI digest
     workflow_dispatch:
         inputs:
             dry_run:

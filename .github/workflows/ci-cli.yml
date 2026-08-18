@@ -2,21 +2,7 @@ name: CI CLI
 permissions:
     contents: read
 on:
-    pull_request:
-        paths:
-            - 'cli/**'
-            - 'services/mcp/src/cli/**'
-            - 'services/mcp/src/tools/**'
-            - 'services/mcp/src/api/**'
-            - 'services/mcp/schema/**'
-            - 'services/mcp/scripts/build-cli*.ts'
-            - 'services/mcp/scripts/hono-esbuild-config.ts'
-            - 'services/mcp/package.json'
-            - 'dist-workspace.toml'
-            - 'pnpm-lock.yaml'
-            - '.github/workflows/release.yml'
-            - '.github/workflows/ci-cli.yml'
-            - '.github/workflows/release-cli.yml'
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -25,7 +11,7 @@ concurrency:
 jobs:
     tests:
         name: Run tests
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         defaults:
             run:
@@ -48,7 +34,7 @@ jobs:
 
     clippy:
         name: Clippy
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         defaults:
             run:
@@ -67,7 +53,7 @@ jobs:
 
     format:
         name: Format
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         defaults:
             run:
@@ -86,7 +72,7 @@ jobs:
 
     api-cli-release-bundle:
         name: API CLI release bundle
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

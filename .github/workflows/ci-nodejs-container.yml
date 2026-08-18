@@ -2,28 +2,6 @@ name: Build and deploy node container image
 
 on:
     workflow_dispatch:
-    # paths mirror the changes job's dorny filter, which still gates push events.
-    pull_request:
-        paths:
-            - 'nodejs/**'
-            - 'common/hogvm/typescript/**'
-            - 'common/plugin_transpiler/**'
-            - 'common/esbuilder/**'
-            - 'common/replay-shared/**'
-            - 'common/replay-headless/**'
-            - 'rust/cyclotron-node/**'
-            - 'rust/common/hogvm/**'
-            - 'rust/replay-anonymizer/**'
-            - 'rust/replay-anonymizer-node/**'
-            - 'Dockerfile.node'
-            - '.github/workflows/ci-nodejs-container.yml'
-            - 'turbo.json'
-            - 'package.json'
-            - 'pnpm-lock.yaml'
-            - 'pnpm-workspace.yaml'
-    push:
-        branches:
-            - 'master'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -31,7 +9,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         permissions:
             contents: read
             pull-requests: read
@@ -80,7 +58,7 @@ jobs:
         if: |
             (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.changes.outputs.node_files == 'true') ||
             (github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.node_files == 'true' && github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true')
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 30
         permissions:
             id-token: write # allow issuing OIDC tokens for this workflow run
@@ -98,7 +76,7 @@ jobs:
               uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
             - name: Set up Depot CLI
-              uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
+              uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
             - name: Docker meta and registry login
               id: docker-meta
@@ -114,11 +92,9 @@ jobs:
 
             - name: Build and push container image
               id: build
-              uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
               with:
                   context: .
-                  buildx-fallback: false
-                  project: '00mrvlsdvh'
                   push: ${{ github.event_name == 'pull_request' || vars.CD_DEPLOY_ENABLED == 'true' }}
                   file: Dockerfile.node
                   tags: ${{ steps.docker-meta.outputs.tags }}

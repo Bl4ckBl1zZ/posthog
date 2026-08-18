@@ -4,11 +4,7 @@ name: Script tests
 # (e.g. schema-impact narrowing). Without this, a regression in the narrowing
 # logic could silently skip affected product tests.
 on:
-    pull_request:
-        paths:
-            - .github/scripts/**
-            - .github/auto-assign-labels.json
-            - .github/workflows/ci-scripts.yml
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -20,7 +16,7 @@ permissions:
 jobs:
     script-tests:
         name: .github/scripts unit tests
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

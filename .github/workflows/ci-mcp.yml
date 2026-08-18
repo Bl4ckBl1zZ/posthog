@@ -1,15 +1,7 @@
 name: MCP CI
 
 on:
-    push:
-        branches: [master]
-    pull_request:
-        # Draft PRs run build + unit tests only; the integration tests (which boot
-        # the full PostHog backend and trigger on any Python change) run when the
-        # PR is marked ready for review — that full run is the merge gate.
-        # The `no-ci` label silences this workflow on a draft entirely (prototypes).
-        # No labeled/unlabeled triggers here, so it takes effect from the next push.
-        types: [opened, synchronize, reopened, ready_for_review]
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -24,7 +16,7 @@ env:
 
 jobs:
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         # A draft PR labeled `no-ci` skips this workflow entirely (prototypes):
         # every other job needs this one, and the gates treat skipped as success.
@@ -108,7 +100,7 @@ jobs:
                         - '.github/workflows/mcp-publish.yml'
     build:
         name: Build Package
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         needs: changes
         if: needs.changes.outputs.mcp == 'true'
@@ -178,7 +170,7 @@ jobs:
 
     unit-tests:
         name: Unit Tests
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         needs: changes
         if: needs.changes.outputs.mcp == 'true'
@@ -245,8 +237,8 @@ jobs:
                   if-no-files-found: ignore
 
     integration-tests:
-        name: Integration Tests (depot-ubuntu-24.04-4)
-        runs-on: depot-ubuntu-24.04-4
+        name: Integration Tests (ubuntu-24.04)
+        runs-on: ubuntu-24.04
         needs: changes
         timeout-minutes: 30
         # Skipped on drafts: these boot the full PostHog backend and trigger on any
@@ -625,7 +617,7 @@ jobs:
 
     handle-snapshots:
         name: Commit snapshot changes
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         needs: [changes, unit-tests]
         if: ${{ always() && needs.changes.outputs.mcp == 'true' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !contains(github.actor, '[bot]') && github.actor != 'posthog-bot' && !contains(github.actor, 'github-actions') }}
@@ -693,7 +685,7 @@ jobs:
     mcp_tests:
         needs: [changes, build, unit-tests, integration-tests, handle-snapshots]
         name: MCP Tests Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

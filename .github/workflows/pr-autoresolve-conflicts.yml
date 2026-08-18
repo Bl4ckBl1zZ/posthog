@@ -13,8 +13,6 @@ name: Auto-resolve PR conflicts
 # NO write token; `finalize` holds the App token but only consumes result DATA via trusted scripts.
 
 on:
-    schedule:
-        - cron: '*/15 * * * 1-5' # every 15 minutes, weekdays only (no point resolving over the weekend)
     workflow_dispatch:
         inputs:
             pr_number:
@@ -158,7 +156,7 @@ jobs:
         name: Resolve #${{ matrix.pr.number }}
         needs: detect
         if: needs.detect.outputs.count != '0'
-        runs-on: ubuntu-latest # bump to depot-ubuntu-latest-4 only if the heavy path OOMs
+        runs-on: ubuntu-latest # bump to ubuntu-latest only if the heavy path OOMs
         timeout-minutes: 35 # heavy path adds ~10-15 min of backend bring-up
         # NO write token — runs PR-controlled code and the agent.
         permissions:

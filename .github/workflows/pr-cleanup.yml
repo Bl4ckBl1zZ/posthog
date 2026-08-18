@@ -1,9 +1,6 @@
 name: PR Cleanup
 
 on:
-    schedule:
-        # Run daily at 3am UTC
-        - cron: '0 3 * * *'
     workflow_call:
         inputs:
             pr_number:
@@ -38,7 +35,7 @@ permissions:
 jobs:
     cleanup-hobby-preview:
         name: Cleanup hobby preview droplets
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -142,7 +139,7 @@ jobs:
 
     cleanup-cf-pages-playwright:
         name: Cleanup Cloudflare Pages playwright reports
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:
             - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0

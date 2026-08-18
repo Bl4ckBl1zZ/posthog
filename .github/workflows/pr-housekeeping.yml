@@ -6,8 +6,7 @@ name: PR housekeeping
 # under this parent divides the burst budget every push consumes.
 
 on:
-    pull_request:
-        types: [opened, synchronize, reopened, edited, ready_for_review, review_requested, converted_to_draft]
+    workflow_dispatch:
 
 # Keyed by event action so a new push (synchronize) cancels the previous
 # push's run without cancelling runs fired by other event types on the PR.

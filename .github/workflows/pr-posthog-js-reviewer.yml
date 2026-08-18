@@ -6,12 +6,7 @@ name: Sync client libraries review for posthog-js updates
 
 # nosemgrep: semgrep.rules.github-actions-pull-request-target
 on:
-    pull_request_target:
-        # `edited` lets us request review after a stacked PR is retargeted to master.
-        # We intentionally don't use a paths filter: when a package.json change is
-        # rolled back, the PR diff no longer matches `**/package.json`, so a filtered
-        # workflow would never get a chance to remove the stale review request.
-        types: [opened, synchronize, edited]
+    workflow_dispatch:
 
 permissions:
     contents: read

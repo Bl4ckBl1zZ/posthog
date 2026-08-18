@@ -1,20 +1,6 @@
 name: ClickHouse Multinode Migration Smoke
 
 on:
-    push:
-        branches:
-            - master
-    pull_request:
-        paths:
-            - 'posthog/clickhouse/migrations/**'
-            - 'posthog/settings/data_stores.py'
-            - 'posthog/clickhouse/cluster.py'
-            - 'posthog/clickhouse/client/migration_tools.py'
-            - 'docker/clickhouse/config.d/multinode/**'
-            - 'docker-compose.multinode-clickhouse.yml'
-            - 'tools/infra-scripts/clickhouse-multinode/**'
-            - 'posthog/clickhouse/hcl/**'
-            - '.github/workflows/ci-clickhouse-multinode-migrations.yml'
     workflow_dispatch:
 
 concurrency:
@@ -29,7 +15,7 @@ permissions:
 jobs:
     multinode-migration-smoke:
         name: Run ClickHouse migrations against per-cluster topology
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # The job applies every Postgres and ClickHouse migration from scratch, so its
         # runtime grows with the migration count: ~20 minutes in June 2026, past 25 by
         # July, ~27 minutes as of this bump. Raise further if it keeps creeping up.

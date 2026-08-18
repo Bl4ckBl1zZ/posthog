@@ -3,24 +3,7 @@
 name: Dev sandbox self-test
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - bin/dev-sandbox
-            - bin/dev-sandbox.sb
-            - bin/dev-sandbox-selftest
-            - bin/dev-sandbox-shims
-            - bin/dev-sandbox-shims-selftest
-            - .github/workflows/dev-sandbox-selftest.yml
-    pull_request:
-        paths:
-            - bin/dev-sandbox
-            - bin/dev-sandbox.sb
-            - bin/dev-sandbox-selftest
-            - bin/dev-sandbox-shims
-            - bin/dev-sandbox-shims-selftest
-            - .github/workflows/dev-sandbox-selftest.yml
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -31,7 +14,7 @@ jobs:
         name: Verify dev sandbox profile
         # sandbox-exec (Seatbelt) is macOS-only. Depot macOS is a fixed FIFO pool
         # (Startup+ plan); if it's unavailable, swap runs-on for `macos-14`.
-        runs-on: depot-macos-15
+        runs-on: macos-15
         timeout-minutes: 15
         permissions:
             contents: read
@@ -43,7 +26,7 @@ jobs:
     shims-selftest:
         name: Verify dev sandbox shims routing
         # Pure string-logic test — no sandbox-exec needed, so it runs on Linux.
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read

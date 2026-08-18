@@ -15,8 +15,6 @@ name: Engineering analytics weekly digest
 #     ci-alerts-devex).
 
 on:
-    schedule:
-        - cron: '0 13 * * 1' # Mondays 13:00 UTC
     workflow_dispatch:
         inputs:
             dry_run:
@@ -29,7 +27,7 @@ permissions:
 
 jobs:
     digest:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # Covers the script's worst case: 3 endpoint attempts x 150s abort plus 2 x 30s
         # backoffs (~8.5min; it retries transient 5xxs from a contended warehouse cluster), plus setup.
         timeout-minutes: 12

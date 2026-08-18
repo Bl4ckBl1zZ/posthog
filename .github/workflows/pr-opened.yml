@@ -16,7 +16,7 @@ permissions:
 jobs:
     check-description:
         name: Check that PR has description
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.event.pull_request.draft == false
 
@@ -57,7 +57,7 @@ jobs:
 
     author-hygiene:
         name: Assign PR author and nudge non-PostHog git email
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         # Only on the initial `opened` action (not `ready_for_review`), so it
         # fires exactly once. Drafts are fine — we still assign + nudge early.
