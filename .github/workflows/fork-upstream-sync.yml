@@ -8,9 +8,11 @@
 # Conflicts outside the policy-owned paths stop the automation: the PR is left as a draft
 # with the conflict markers in place so they can be resolved in-branch.
 #
-# Set the FORK_SYNC_TOKEN secret (a PAT with repo scope) to have the sync PR trigger the
-# repo's normal checks. Without it the built-in GITHUB_TOKEN is used, which by design never
-# triggers workflows — the verify job below is then the only gate.
+# Requires the FORK_SYNC_TOKEN secret: a PAT with `repo` and `workflow` scope. The built-in
+# GITHUB_TOKEN cannot push changes under .github/workflows/ (GitHub rejects the push, and no
+# `permissions:` block can grant the `workflow` scope), and every upstream merge touches
+# those files. A PAT also lets the sync PR trigger the repo's other checks, which GITHUB_TOKEN
+# never does.
 name: Fork upstream sync
 
 on:
@@ -50,11 +52,25 @@ jobs:
             upstream_sha: ${{ steps.upstream.outputs.sha }}
             behind: ${{ steps.upstream.outputs.behind }}
             conflicts: ${{ steps.merge.outputs.conflicts }}
+        env:
+            # The secrets context is not available in a step-level `if:`, so surface it here.
+            HAS_SYNC_TOKEN: ${{ secrets.FORK_SYNC_TOKEN != '' }}
         steps:
+            # Checked up front so a missing token fails in seconds rather than after the
+            # merge, which is several minutes of work that would be thrown away.
+            - name: Require a token that can push workflow changes
+              if: env.HAS_SYNC_TOKEN != 'true'
+              run: |
+                  echo "::error::FORK_SYNC_TOKEN is not set. Syncing upstream rewrites files under" \
+                       ".github/workflows/, which the built-in GITHUB_TOKEN is not allowed to push." \
+                       "Add a personal access token with 'repo' and 'workflow' scope as the" \
+                       "FORK_SYNC_TOKEN repository secret. See FORK.md."
+                  exit 1
+
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
               with:
                   fetch-depth: 0
-                  token: ${{ secrets.FORK_SYNC_TOKEN || github.token }}
+                  token: ${{ secrets.FORK_SYNC_TOKEN }}
 
             - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
               with:
@@ -152,7 +168,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
-            GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN || github.token }}
+            GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN }}
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
