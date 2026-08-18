@@ -1,10 +1,7 @@
 name: Release CLI
 
 on:
-    push:
-        branches: [master]
-        paths:
-            - 'cli/.sampo/changesets/*.md'
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -21,7 +18,7 @@ concurrency:
 jobs:
     check-changesets:
         name: Check for CLI changesets
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
             has-changesets: ${{ steps.check.outputs.has-changesets }}
@@ -63,7 +60,7 @@ jobs:
         name: Generate CLI release preview
         needs: check-changesets
         if: needs.check-changesets.outputs.has-changesets == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - name: Write CLI diff summary
@@ -126,7 +123,7 @@ jobs:
     release:
         name: Prepare CLI release
         needs: [check-changesets, cli-release-preview, notify-approval-needed]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         if: always() && needs.check-changesets.outputs.has-changesets == 'true' && needs.cli-release-preview.result == 'success'
         environment: Release SDK
@@ -298,7 +295,7 @@ jobs:
         name: Plan cargo-dist release
         needs: release
         if: needs.release.outputs.release-commit != ''
-        runs-on: 'halifax-bl4ckbl1zz-posthog-6c1d8cbb'
+        runs-on: 'ubuntu-latest'
         timeout-minutes: 10
         outputs:
             val: ${{ steps.plan.outputs.manifest }}
@@ -501,7 +498,7 @@ jobs:
             - plan-release
             - build-local-artifacts
         if: ${{ needs.build-local-artifacts.result == 'success' }}
-        runs-on: 'halifax-bl4ckbl1zz-posthog-6c1d8cbb'
+        runs-on: 'ubuntu-latest'
         timeout-minutes: 15
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -569,7 +566,7 @@ jobs:
             - build-global-artifacts
         # Only run if we're "publishing", and only if local and global didn't fail (skipped is fine)
         if: ${{ always() && needs.plan-release.outputs.publishing == 'true' && (needs.build-global-artifacts.result == 'skipped' || needs.build-global-artifacts.result == 'success') && (needs.build-local-artifacts.result == 'skipped' || needs.build-local-artifacts.result == 'success') }}
-        runs-on: 'halifax-bl4ckbl1zz-posthog-6c1d8cbb'
+        runs-on: 'ubuntu-latest'
         timeout-minutes: 15
         outputs:
             val: ${{ steps.host.outputs.manifest }}
@@ -672,7 +669,7 @@ jobs:
             - release
             - plan-release
             - host-release
-        runs-on: 'halifax-bl4ckbl1zz-posthog-6c1d8cbb'
+        runs-on: 'ubuntu-latest'
         timeout-minutes: 10
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -710,7 +707,7 @@ jobs:
     notify-released:
         name: Notify Slack - Release Published
         needs: [notify-approval-needed, release, host-release, publish-npm]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always() && needs.host-release.result == 'success' && (needs.publish-npm.result == 'success' || needs.publish-npm.result == 'skipped') && needs.notify-approval-needed.outputs.slack_ts != ''
         steps:

@@ -5,10 +5,7 @@ name: Agent Skills
 # master trigger lets unrelated commits break the build invisibly until the next
 # skills-path commit takes the blame. PR runs stay filtered via the changes job below.
 on:
-    pull_request:
-    push:
-        branches:
-            - master
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.head_ref || github.ref }}
@@ -19,7 +16,7 @@ jobs:
         permissions:
             contents: read
             pull-requests: read
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         name: Determine need to run skill checks
         outputs:
@@ -48,7 +45,7 @@ jobs:
 
     check-skills:
         name: Check agent skills
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         needs: changes
         if: needs.changes.outputs.skills == 'true'
@@ -138,7 +135,7 @@ jobs:
 
     current-master:
         name: Check current master
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         needs: check-skills
         if: github.repository_owner == 'PostHog' && github.ref == 'refs/heads/master'
@@ -165,7 +162,7 @@ jobs:
 
     release-skills:
         name: Release agent skills
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         needs: [check-skills, current-master]
         if: github.repository_owner == 'PostHog' && github.ref == 'refs/heads/master' && needs.current-master.outputs.is-current == 'true'

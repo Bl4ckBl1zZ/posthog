@@ -1,8 +1,5 @@
 on:
-    push:
-        branches:
-            - master
-    pull_request:
+    workflow_dispatch:
 
 name: Security
 
@@ -20,7 +17,7 @@ jobs:
     # 3000 changed files. PRs exceeding that will silently truncate, but the
     # outputs default to 'true' so scans run unconditionally (safe fallback).
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.repository == 'PostHog/posthog'
         name: Determine need to run Semgrep checks
@@ -77,7 +74,7 @@ jobs:
     semgrep-python:
         needs: changes
         if: needs.changes.outputs.python == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
 
         env:
@@ -119,7 +116,7 @@ jobs:
     semgrep-go:
         needs: changes
         if: needs.changes.outputs.go == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         env:
@@ -158,7 +155,7 @@ jobs:
     semgrep-rust:
         needs: changes
         if: needs.changes.outputs.rust == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         env:
@@ -199,7 +196,7 @@ jobs:
     semgrep-js:
         needs: changes
         if: needs.changes.outputs.js == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 20
 
         env:
@@ -237,7 +234,7 @@ jobs:
     semgrep-products-frontend:
         needs: changes
         if: needs.changes.outputs.products-frontend == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 20
 
         env:
@@ -274,7 +271,7 @@ jobs:
 
     # scans GitHub Actions and other repo-wide config
     semgrep-general:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 20
 
         env:
@@ -332,7 +329,7 @@ jobs:
     #   - ERROR-severity rules fail the job on any finding (regression guards).
     # See `.semgrep/rules/devex/README.md`.
     semgrep-devex:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 20
 
         env:
@@ -383,7 +380,7 @@ jobs:
                       bin/ common/ ee/ frontend/ packages/ posthog/ products/
 
     semgrep-test-rules:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         env:
@@ -420,7 +417,7 @@ jobs:
             - semgrep-devex
             - semgrep-test-rules
         name: Semgrep Checks Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

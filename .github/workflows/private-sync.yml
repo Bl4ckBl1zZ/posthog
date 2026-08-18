@@ -1,9 +1,7 @@
 name: PostHog Private Sync
 
 on:
-    push:
-        branches:
-            - master
+    workflow_dispatch:
 
 concurrency:
     group: private-sync
@@ -15,7 +13,7 @@ jobs:
         # Set the `PRIVATE_SYNC_PAUSED` repo variable to `true` to pause the mirror
         # (e.g. during a coordinated change that must land on private first).
         if: github.repository == 'PostHog/posthog' && vars.PRIVATE_SYNC_PAUSED != 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
             contents: read

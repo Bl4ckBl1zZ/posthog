@@ -1,17 +1,6 @@
 name: Frontend CI
 on:
-    pull_request:
-        # Draft PRs run a narrowed jest selection; ready PRs run the full matrix
-        # (the merge gate). ready_for_review re-triggers the full run on the
-        # current head when a PR leaves draft. To force the full matrix on a
-        # draft, add the `run-ci-frontend` label — labeled/unlabeled re-trigger
-        # the run so it starts without needing a new push. The `no-ci` label does
-        # the opposite: it silences this workflow on a draft entirely (prototypes),
-        # until the label is removed or the PR is marked ready for review.
-        types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
-    push:
-        branches:
-            - master
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -31,7 +20,7 @@ jobs:
     # we skip each step individually, so   they are still reported as success
     # because many of them are required for CI checks to be green
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         # A draft PR labeled `no-ci` skips this workflow entirely (prototypes):
         # every other job needs this one, and the gates treat skipped as success.
@@ -178,7 +167,7 @@ jobs:
     # and defers to the ready full run.
     select-jest-tests:
         name: Select jest tests
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         needs: changes
         if: |
@@ -306,7 +295,7 @@ jobs:
         name: Frontend formatting
         needs: changes
         if: needs.changes.outputs.frontend == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -341,7 +330,7 @@ jobs:
         name: Frontend bundle size
         needs: [changes]
         if: needs.changes.outputs.frontend_code == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -577,7 +566,7 @@ jobs:
         name: Frontend typechecking
         needs: [changes]
         if: needs.changes.outputs.frontend_code == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # Kea typegen invalidates on changes to any logic plus everything that depends on it.
         # For changes to shared core (TaxonomicFilter, Insight, etc.) the dependent set is large
         # and the cache miss costs ~5min on top of the master baseline (~10min). 15 is too tight.
@@ -634,7 +623,7 @@ jobs:
               run: node bin/validate-setup-tasks.mjs
 
     jest:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # Draft PRs run the selective mode as a single unsharded job over every
         # test reachable from the changed files. A PR touching a scene component
         # can pull in ~700 suites, which does not fit in 15 minutes. 20 covers it;
@@ -750,7 +739,7 @@ jobs:
               run: exit 1
 
     jest-replay-shared:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         needs: changes
         if: needs.changes.outputs.replay_shared == 'true'
@@ -821,7 +810,7 @@ jobs:
                 frontend_tests,
                 changes,
             ]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
             always() && github.actor != 'dependabot[bot]' &&
@@ -864,7 +853,7 @@ jobs:
     frontend_tests:
         needs: [jest, jest-replay-shared, frontend-format, frontend-bundle-size, frontend-typescript-checks]
         name: Frontend Tests Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

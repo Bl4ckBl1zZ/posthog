@@ -8,11 +8,7 @@
 # Debug: SSH to droplet and run `tail -f /var/log/cloud-init-output.log`
 name: E2E Hobby CI
 on:
-    push:
-        branches:
-            - 'release-*.*'
-    pull_request:
-        types: [opened, synchronize, labeled, unlabeled]
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -27,7 +23,7 @@ jobs:
     # Determine if we should run based on changed files or preview label
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.event_name == 'pull_request'
         name: Determine need to run hobby checks
@@ -97,7 +93,7 @@ jobs:
     wait-for-docker-image:
         name: Wait for Docker image build
         needs: changes
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 90
         if: github.event_name == 'pull_request' && needs.changes.outputs.should_run == 'true'
         outputs:
@@ -223,7 +219,7 @@ jobs:
               run: node .github/scripts/post-hobby-section.mjs image-ready
 
     hobby-test:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 90
         name: Setup DO Hobby Instance and test
         needs: [wait-for-docker-image, changes]

@@ -1,0 +1,223 @@
+# Keeps this fork current with PostHog/posthog.
+#
+# Merges upstream into a long-lived automation branch, re-applies the fork's CI policy
+# (see .github/fork-ci-policy.yml), verifies the fork's own changes survived, then opens a
+# PR and merges it. A merge commit is used deliberately — squashing would drop the upstream
+# parent link, so every later sync would replay thousands of commits it already has.
+#
+# Conflicts outside the policy-owned paths stop the automation: the PR is left as a draft
+# with the conflict markers in place so they can be resolved in-branch.
+#
+# Set the FORK_SYNC_TOKEN secret (a PAT with repo scope) to have the sync PR trigger the
+# repo's normal checks. Without it the built-in GITHUB_TOKEN is used, which by design never
+# triggers workflows — the verify job below is then the only gate.
+name: Fork upstream sync
+
+on:
+    schedule:
+        - cron: '17 4 * * *'
+    workflow_dispatch:
+        inputs:
+            upstream_ref:
+                description: Upstream branch or ref to merge
+                type: string
+                default: master
+            merge:
+                description: Merge the PR automatically when everything passes
+                type: boolean
+                default: true
+
+concurrency:
+    group: fork-upstream-sync
+    cancel-in-progress: false
+
+permissions:
+    contents: write
+    pull-requests: write
+
+env:
+    UPSTREAM_REPO: https://github.com/PostHog/posthog.git
+    UPSTREAM_REF: ${{ inputs.upstream_ref || 'master' }}
+    SYNC_BRANCH: automation/upstream-sync
+
+jobs:
+    sync:
+        name: Merge upstream
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        outputs:
+            status: ${{ steps.merge.outputs.status }}
+            upstream_sha: ${{ steps.upstream.outputs.sha }}
+            behind: ${{ steps.upstream.outputs.behind }}
+            conflicts: ${{ steps.merge.outputs.conflicts }}
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.FORK_SYNC_TOKEN || github.token }}
+
+            - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+              with:
+                  python-version: '3.11'
+
+            - name: Install script dependencies
+              run: pip install --quiet pyyaml
+
+            - name: Fetch upstream
+              id: upstream
+              run: |
+                  set -euo pipefail
+                  git remote add upstream "$UPSTREAM_REPO" 2>/dev/null || git remote set-url upstream "$UPSTREAM_REPO"
+                  git fetch --no-tags upstream "$UPSTREAM_REF"
+                  sha="$(git rev-parse FETCH_HEAD)"
+                  behind="$(git rev-list --count "origin/${GITHUB_REF_NAME}..FETCH_HEAD")"
+                  echo "sha=$sha" >>"$GITHUB_OUTPUT"
+                  echo "behind=$behind" >>"$GITHUB_OUTPUT"
+                  echo "Upstream $UPSTREAM_REF is at $sha; this fork is $behind commit(s) behind."
+
+            - name: Merge upstream and re-apply fork policy
+              id: merge
+              if: steps.upstream.outputs.behind != '0'
+              env:
+                  UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+              run: |
+                  set -uo pipefail
+                  git config user.name 'fork-sync[bot]'
+                  git config user.email 'fork-sync[bot]@users.noreply.github.com'
+                  git checkout -B "$SYNC_BRANCH" "origin/${GITHUB_REF_NAME}"
+
+                  # --no-commit keeps the commit step identical whether or not the merge hit
+                  # conflicts, so the resolver and the normalizer always run before it lands.
+                  status=clean
+                  git merge --no-ff --no-commit FETCH_HEAD || true
+                  if ! python3 bin/fork-sync-resolve.py >resolve.log 2>resolve.err; then
+                      status=conflicts
+                  fi
+                  cat resolve.log resolve.err
+
+                  # Upstream keeps adding jobs on runner fleets this fork does not have, so
+                  # the policy is re-applied on every sync — conflicts or not.
+                  python3 bin/fork-ci-normalize.py || true
+
+                  git add -A
+                  if [ "$status" = conflicts ]; then
+                      message="chore(sync): merge upstream PostHog through ${UPSTREAM_SHA:0:12} (unresolved conflicts)"
+                  else
+                      message="chore(sync): merge upstream PostHog through ${UPSTREAM_SHA:0:12}"
+                  fi
+                  git commit --no-verify -m "$message"
+                  git push --force origin "$SYNC_BRANCH"
+
+                  echo "status=$status" >>"$GITHUB_OUTPUT"
+                  {
+                      echo 'conflicts<<CONFLICT_EOF'
+                      cat resolve.err
+                      echo CONFLICT_EOF
+                  } >>"$GITHUB_OUTPUT"
+
+            - name: Already up to date
+              if: steps.upstream.outputs.behind == '0'
+              run: echo "Nothing to sync."
+
+    verify:
+        name: Verify sync
+        needs: sync
+        if: needs.sync.outputs.status == 'clean'
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  ref: ${{ env.SYNC_BRANCH }}
+
+            - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+              with:
+                  python-version: '3.11'
+
+            - name: Install script dependencies
+              run: pip install --quiet pyyaml 'ruff~=0.15.20'
+
+            # Also asserts every fork change listed in the policy is still present, so an
+            # upstream rewrite cannot silently revert this fork.
+            - name: CI policy applied and fork changes intact
+              run: python3 bin/fork-ci-normalize.py --check
+
+            - name: Python lint
+              run: ruff check .
+
+    pull-request:
+        name: Open and merge PR
+        needs: [sync, verify]
+        if: always() && needs.sync.outputs.status != ''
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            GH_TOKEN: ${{ secrets.FORK_SYNC_TOKEN || github.token }}
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+            - name: Open or update the sync PR
+              id: pr
+              env:
+                  UPSTREAM_SHA: ${{ needs.sync.outputs.upstream_sha }}
+                  BEHIND: ${{ needs.sync.outputs.behind }}
+                  STATUS: ${{ needs.sync.outputs.status }}
+                  CONFLICTS: ${{ needs.sync.outputs.conflicts }}
+              run: |
+                  set -euo pipefail
+                  short="${UPSTREAM_SHA:0:12}"
+                  title="chore(sync): merge upstream PostHog through ${short}"
+                  {
+                      echo "## Changes"
+                      echo
+                      echo "Merges ${BEHIND} upstream commit(s) from PostHog/posthog, up to \`${short}\`."
+                      echo "The fork's CI policy was re-applied afterwards, so any runner or action"
+                      echo "reference upstream added is already rewritten to a GitHub-hosted runner."
+                      echo
+                      if [ "$STATUS" = conflicts ]; then
+                          echo "> [!WARNING]"
+                          echo "> This merge has conflicts the policy cannot resolve, and the branch"
+                          echo "> contains conflict markers. Resolve them in-branch, then mark ready."
+                          echo
+                          echo '```'
+                          echo "$CONFLICTS"
+                          echo '```'
+                          echo
+                      fi
+                      echo "## How did you test this code?"
+                      echo
+                      echo "Automated: fork CI policy check, fork invariant check, ruff, actionlint."
+                      echo
+                      echo "## 🤖 Agent context"
+                      echo
+                      echo "Opened by \`.github/workflows/fork-upstream-sync.yml\`."
+                  } >body.md
+
+                  draft=()
+                  [ "$STATUS" = conflicts ] && draft=(--draft)
+
+                  number="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+                  if [ -z "$number" ]; then
+                      gh pr create --base "${GITHUB_REF_NAME}" --head "$SYNC_BRANCH" \
+                          --title "$title" --body-file body.md "${draft[@]}"
+                      number="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number')"
+                  else
+                      gh pr edit "$number" --title "$title" --body-file body.md
+                  fi
+                  echo "number=$number" >>"$GITHUB_OUTPUT"
+
+            - name: Merge
+              if: >-
+                  needs.sync.outputs.status == 'clean' &&
+                  needs.verify.result == 'success' &&
+                  (github.event_name == 'schedule' || inputs.merge)
+              run: |
+                  # A merge commit, not a squash: it keeps upstream as a parent so the next
+                  # sync only sees genuinely new commits.
+                  gh pr merge "${{ steps.pr.outputs.number }}" --merge --delete-branch
+
+            - name: Explain why the PR was left open
+              if: needs.sync.outputs.status != 'clean' || needs.verify.result != 'success'
+              run: |
+                  gh pr comment "${{ steps.pr.outputs.number }}" --body \
+                      "Left open for review. Merge status: \`${{ needs.sync.outputs.status }}\`, verification \`${{ needs.verify.result }}\`."

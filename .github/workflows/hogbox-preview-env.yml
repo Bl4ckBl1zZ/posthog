@@ -67,15 +67,6 @@
 name: '[Optional] Hogbox Preview Environment'
 
 on:
-    pull_request:
-        # Broad on purpose — the eligibility decision CANNOT live in an
-        # `on.pull_request.paths` filter: that would kill the label-only path for
-        # backend PRs (a labeled PR gets a preview for ANY paths). So the trigger
-        # fires for every PR event of these types and the `decide` job below is the
-        # real gate (see 2a in README). `ready_for_review` is included so a
-        # draft→ready flip creates the preview; `labeled`/`unlabeled` drive both
-        # the manual `hogbox-preview` opt-in and the `no-preview` opt-out.
-        types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
     workflow_dispatch:
         inputs:
             pr_number:
@@ -115,7 +106,7 @@ jobs:
     # `preview`/`teardown` concurrency group, so it can't cancel an active build.
     decide:
         name: '[Optional] decide eligibility'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read
@@ -218,7 +209,7 @@ jobs:
         name: '[Optional] announce build'
         needs: decide
         if: needs.decide.outputs.build == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read
@@ -286,7 +277,7 @@ jobs:
         name: '[Optional] build PR frontend'
         needs: decide
         if: needs.decide.outputs.build == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         permissions:
             contents: read
@@ -417,7 +408,7 @@ jobs:
         concurrency:
             group: hogbox-preview-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
             cancel-in-progress: true
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 40
         permissions:
             contents: read
@@ -732,7 +723,7 @@ jobs:
         concurrency:
             group: hogbox-preview-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
             cancel-in-progress: true
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
             contents: read

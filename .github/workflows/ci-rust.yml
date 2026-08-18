@@ -1,9 +1,6 @@
 name: Rust CI
 on:
     workflow_dispatch:
-    push:
-        branches: [master, main]
-    pull_request:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -18,7 +15,7 @@ jobs:
     # Job to decide if we should run rust ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.repository == 'PostHog/posthog'
         name: Determine need to run Rust checks
@@ -71,7 +68,7 @@ jobs:
         name: Compute affected Rust crates
         needs: changes
         if: needs.changes.outputs.rust == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
             contents: read
@@ -218,10 +215,10 @@ jobs:
                       f.write(f"matrix={json.dumps(matrix)}\n")
 
     build:
-        name: Build Rust services (depot-ubuntu-22.04-4)
+        name: Build Rust services (ubuntu-22.04)
         needs: [changes, affected]
         if: needs.changes.outputs.rust == 'true'
-        runs-on: depot-ubuntu-22.04-4
+        runs-on: ubuntu-22.04
         timeout-minutes: 15
         permissions:
             contents: read
@@ -292,7 +289,7 @@ jobs:
             matrix: ${{ fromJSON(needs.affected.outputs.matrix) }}
         needs: [changes, affected]
         if: needs.changes.outputs.rust == 'true'
-        runs-on: depot-ubuntu-24.04-4
+        runs-on: ubuntu-24.04
         # stateright model checks need more headroom than the other shards
         timeout-minutes: ${{ contains(matrix.packages, 'personhog-stateright') && 40 || 20 }}
         permissions:
@@ -498,7 +495,7 @@ jobs:
         # marks the harness affected whenever a personhog service it spawns
         # changes, so unrelated rust PRs skip the job entirely.
         if: needs.changes.outputs.rust == 'true' && contains(needs.affected.outputs.affected_crates, 'personhog-test-harness')
-        runs-on: depot-ubuntu-24.04-4
+        runs-on: ubuntu-24.04
         timeout-minutes: 25
         permissions:
             contents: read
@@ -656,10 +653,10 @@ jobs:
                   if-no-files-found: ignore
 
     linting:
-        name: Lint Rust services (depot-ubuntu-22.04-4)
+        name: Lint Rust services (ubuntu-22.04)
         needs: changes
         if: needs.changes.outputs.rust == 'true'
-        runs-on: depot-ubuntu-22.04-4
+        runs-on: ubuntu-22.04
         timeout-minutes: 15
         permissions:
             contents: read
@@ -743,7 +740,7 @@ jobs:
     rust_tests:
         needs: [changes, affected, build, test, linting]
         name: Rust Tests Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         permissions: {}

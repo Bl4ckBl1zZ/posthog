@@ -6,16 +6,7 @@ permissions:
     pull-requests: write
 
 on:
-    pull_request:
-        paths:
-            - terraform/**/*
-            - .github/workflows/terragrunt-posthog.yaml
-    push:
-        branches:
-            - master
-        paths:
-            - terraform/**/*
-            - .github/workflows/terragrunt-posthog.yaml
+    workflow_dispatch:
 
 concurrency:
     group: terragrunt-posthog-${{ github.ref }}
@@ -23,7 +14,7 @@ concurrency:
 
 jobs:
     setup:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         outputs:
             matrix_data: ${{ steps.changes.outputs.matrix_data }}
@@ -72,7 +63,7 @@ jobs:
         if: needs.setup.outputs.matrix_data != '[]'
         needs: [setup]
         name: ${{ matrix.service_name }}
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         strategy:
             fail-fast: false

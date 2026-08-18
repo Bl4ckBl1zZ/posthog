@@ -1,10 +1,7 @@
 name: Vendored paths-filter action
 
 on:
-    pull_request:
-        paths:
-            - '.github/actions/paths-filter/**'
-            - '.github/workflows/ci-paths-filter.yml'
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -16,7 +13,7 @@ permissions:
 jobs:
     verify:
         name: Test and verify committed bundle
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 10
         defaults:
             run:

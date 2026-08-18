@@ -1,9 +1,7 @@
 name: Publish posthog-symbol-data to crates.io
 
 on:
-    push:
-        tags:
-            - 'posthog-symbol-data/v*'
+    workflow_dispatch:
 
 env:
     CARGO_TERM_COLOR: always
@@ -11,7 +9,7 @@ env:
 jobs:
     publish:
         name: Publish to crates.io
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.repository == 'PostHog/posthog'
 

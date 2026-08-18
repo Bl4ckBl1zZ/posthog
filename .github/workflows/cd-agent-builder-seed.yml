@@ -18,17 +18,6 @@ name: Seed agent-builder
 # revision's and skips promote when the artifact is byte-identical, so a
 # scheduled run with nothing to converge promotes nothing.
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - products/agent_platform/services/agent-tests/src/examples/agent-builder/**
-            - products/agent_platform/services/agent-tests/src/examples/seed.py
-            - products/agent_platform/backend/kernel_skills/**
-            - products/agent_platform/backend/logic/trigger_required_secrets.generated.json
-            - .github/workflows/cd-agent-builder-seed.yml
-    schedule:
-        - cron: '17 6 * * *'
     workflow_dispatch: {}
 
 # Never run two seeds concurrently — each run branches a draft off the live
@@ -47,7 +36,7 @@ jobs:
         # (CD_DEPLOY_ENABLED) and only from master — workflow_dispatch can target
         # any ref, and an unmerged branch must never run with the prod PAT.
         if: github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/master'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
             POSTHOG_API: https://us.posthog.com

@@ -10,24 +10,6 @@ name: Build and deploy rust container images
 
 on:
     workflow_dispatch:
-    push:
-        paths:
-            - 'rust/**'
-            - 'proto/**'
-            - '.github/workflows/rust-docker-build.yml'
-            - '.github/workflows/_rust-build-images.yml'
-            - '.github/rust-images.yml'
-        branches:
-            - 'master'
-    pull_request:
-        paths:
-            - 'rust/**'
-            - 'proto/**'
-            - '.github/workflows/rust-docker-build.yml'
-            - '.github/workflows/_rust-build-images.yml'
-            - '.github/rust-images.yml'
-        branches:
-            - 'master'
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -36,7 +18,7 @@ concurrency:
 jobs:
     affected:
         name: compute affected images
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         # Skip on workflow_dispatch — always build everything (escape hatch)
         if: >-
@@ -111,7 +93,7 @@ jobs:
 
     deploy:
         name: deploy ${{ matrix.release }}
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         needs: build-images
         if: github.repository_owner == 'PostHog' && vars.CD_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/master'

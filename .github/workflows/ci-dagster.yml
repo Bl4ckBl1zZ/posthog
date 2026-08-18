@@ -1,10 +1,7 @@
 # This workflow runs all of our dagster tests.
 name: Dagster CI
 on:
-    push:
-        branches:
-            - master
-    pull_request:
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -40,7 +37,7 @@ jobs:
     # actually import — prevents silent drift where a new import slips in
     # without a matching filter entry.
     validate-paths:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         name: Validate dagster path filter coverage
         steps:
@@ -55,7 +52,7 @@ jobs:
     # Job to decide if we should run dagster ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         name: Determine need to run dagster checks
         # Set job outputs to values from filter step
@@ -250,7 +247,7 @@ jobs:
             matrix:
                 include: ${{ fromJson(needs.changes.outputs.matrix_include || '[]') }}
         if: needs.changes.outputs.dagster == 'true'
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         env:
             DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USER }}
             DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -455,7 +452,7 @@ jobs:
     dagster_tests:
         needs: [dagster]
         name: Dagster Tests Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

@@ -4,28 +4,11 @@
 # .github/workflows/ci-backend-update-test-timing.yml action
 name: Backend CI
 on:
-    push:
-        branches:
-            - master
     workflow_dispatch:
         inputs:
             clickhouseServerVersion:
                 description: ClickHouse server version. Leave blank for default
                 type: string
-    pull_request:
-        # Draft PRs run the snob-selected Django subset (≤3 shards) for fast feedback;
-        # turbo-tests (product tests) still skip drafts. Ready PRs run the full
-        # matrices — that full run is the merge gate, and ready_for_review re-triggers
-        # it when a PR leaves draft. To force the full matrices on a draft, add the
-        # `run-ci-backend` label — labeled/unlabeled re-trigger the run so the matrices
-        # start without needing a new push. Cheap checks still run on drafts.
-        # The `no-ci` label does the opposite: it silences this workflow on a draft
-        # entirely (prototypes/spikes), until the label is removed or the PR is
-        # marked ready for review.
-        # The `test-new-events-schema` label opts a PR into the doubled matrices that
-        # rerun everything with CLICKHOUSE_HOGQL_USE_NEW_EVENTS_SCHEMA=true; unlabeled
-        # PRs run legacy-schema only (master runs always cover both).
-        types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 concurrency:
     # PRs: one active run per branch, cancel stale. Push: per-SHA so master
@@ -79,7 +62,7 @@ jobs:
     # Job to decide if we should run backend ci
     # See .github/actions/paths-filter/README.md for filter semantics
     changes:
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         # A draft PR labeled `no-ci` skips this workflow entirely (prototypes):
         # every other job needs this one, and the gates treat skipped as success.
@@ -321,7 +304,7 @@ jobs:
 
     detect-snapshot-mode:
         name: Detect snapshot mode
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         needs: [changes]
         if: needs.changes.outputs.backend == 'true'
@@ -362,7 +345,7 @@ jobs:
     turbo-discover:
         needs: changes
         if: needs.changes.outputs.backend == 'true'
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 20
         name: Discover product tests
         outputs:
@@ -488,7 +471,7 @@ jobs:
             github.event.pull_request.draft == true &&
             !contains(github.event.pull_request.labels.*.name, 'run-ci-backend') &&
             needs.changes.outputs.backend == 'true'
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
             mode: ${{ steps.classify.outputs.mode }}
@@ -679,7 +662,7 @@ jobs:
             needs.turbo-discover.result == 'success' &&
             needs.turbo-discover.outputs.matrix != '[]' &&
             needs.turbo-discover.outputs.matrix != ''
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         outputs:
             include: ${{ steps.build.outputs.include }}
@@ -725,7 +708,7 @@ jobs:
             needs.build-product-test-matrix.result == 'success' &&
             needs.build-product-test-matrix.outputs.include != '[]' &&
             needs.build-product-test-matrix.outputs.include != ''
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 40
         name: Product tests (${{ matrix.group }}, events schema ${{ matrix.new-events-schema && 'json' || 'legacy' }})
         strategy:
@@ -1043,8 +1026,8 @@ jobs:
         permissions:
             contents: read
             pull-requests: read # list PR files for the deleted-migration check
-        name: Repo checks (depot-ubuntu-24.04)
-        runs-on: depot-ubuntu-24.04
+        name: Repo checks (ubuntu-24.04)
+        runs-on: ubuntu-24.04
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -1147,7 +1130,7 @@ jobs:
             contents: read
             actions: write
         name: Cancel Backend CI after repo check failure
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         steps:
             - name: Cancel run
               env:
@@ -1172,7 +1155,7 @@ jobs:
             github.event.pull_request.head.repo.full_name == github.repository
         timeout-minutes: 5
         name: Validate product.yaml owners (ubuntu-latest)
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -1250,7 +1233,7 @@ jobs:
             pull-requests: write
 
         name: Validate migrations
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         env:
             DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USER }}
             DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -1883,7 +1866,7 @@ jobs:
             contents: read
 
         name: Validate OpenAPI types
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         env:
             DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USER }}
             DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -2084,7 +2067,7 @@ jobs:
             contents: read
             actions: write
         name: Cancel Backend CI after OpenAPI check failure
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         steps:
             - name: Cancel run
               env:
@@ -2101,7 +2084,7 @@ jobs:
             !cancelled() &&
             needs.changes.outputs.backend == 'true' &&
             needs.get_clickhouse_versions.result == 'success'
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         outputs:
             include: ${{ steps.build.outputs.include }}
@@ -2400,7 +2383,7 @@ jobs:
 
         name: Django tests – ${{ matrix.segment }}${{ matrix.compat && ' compat' || '' }} (persons-on-events ${{ matrix.person-on-events && 'on' || 'off' }}, events schema ${{ matrix.new-events-schema && 'json' || 'legacy' }}), Py ${{ matrix.python-version }}, ${{ matrix.clickhouse-server-image }} (${{matrix.group}}/${{ matrix.concurrency }})
         # Runner type is performance-critical — consult #team-devex before changing
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
 
         strategy:
             fail-fast: false
@@ -3026,7 +3009,7 @@ jobs:
         name: Get ClickHouse versions
         needs: [changes]
         if: needs.changes.outputs.backend == 'true'
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         outputs:
             # Oldest supported version as plain string (for comparisons)
@@ -3116,7 +3099,7 @@ jobs:
         # Only in UPDATE mode - CHECK mode verifies snapshots match exactly
         # Run even if some matrix jobs failed (to commit snapshots from passing jobs)
         if: ${{ !cancelled() && needs.detect-snapshot-mode.outputs.mode == 'update' && needs.changes.outputs.backend == 'true' && github.event.pull_request.head.repo.full_name == 'PostHog/posthog' }}
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: write
@@ -3197,7 +3180,7 @@ jobs:
                 repo-checks,
             ]
         name: Django Tests Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         # Headroom for downloading every shard's JUnit for the failure rollup.
         timeout-minutes: 8
         # Intentional always(): this required gate must inspect failed and cancelled
@@ -3388,7 +3371,7 @@ jobs:
         name: Test selection verdict
         # changes is skipped on no-ci drafts — no tests ran, nothing to verdict.
         if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.result != 'skipped' }}
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
             contents: read
@@ -3477,7 +3460,7 @@ jobs:
     calculate-running-time:
         name: Calculate running time
         needs: [django_tests]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         # Run on pull requests to PostHog/posthog + on PostHog/posthog outside of PRs - but never on forks or Dependabot (no secrets access)
         if: >-
@@ -3520,7 +3503,7 @@ jobs:
     capture-test-selection:
         name: Capture test selection
         needs: [select-tests]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         # select-tests only runs on internal draft PRs; fire only when it actually
         # produced a decision. DevEx project only, mirroring monitor-github-rate-limit;
@@ -3563,7 +3546,7 @@ jobs:
     report-test-timings:
         name: Report per-test traces
         needs: [django_tests]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         continue-on-error: true
         timeout-minutes: 10
         # Runs on every attempt: a re-run passing what an earlier attempt failed is the same-commit
@@ -3628,7 +3611,7 @@ jobs:
     backend-coverage-report:
         name: Backend coverage report
         needs: [turbo-tests, django_tests]
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         continue-on-error: true # report-only, never block a PR
         timeout-minutes: 10
         # Pinned job-level: this job runs PR-head-controlled scripts with github.token, so its

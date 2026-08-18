@@ -1,13 +1,7 @@
 name: Lint workflows
 
 on:
-    pull_request:
-        paths:
-            - .github/workflows/**
-            - .github/actions/**
-            - services/**
-            - tools/hogli-commands/hogli_commands/workflow_lint/**
-            - hogli.yaml
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -18,7 +12,7 @@ permissions:
 
 jobs:
     lint-workflows:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

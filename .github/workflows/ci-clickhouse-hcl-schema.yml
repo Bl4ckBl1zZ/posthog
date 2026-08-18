@@ -6,16 +6,6 @@ name: ClickHouse HCL Schema Guard
 # golden cluster dump with zero drift. No live cluster is contacted.
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - 'posthog/clickhouse/hcl/**'
-            - '.github/workflows/ci-clickhouse-hcl-schema.yml'
-    pull_request:
-        paths:
-            - 'posthog/clickhouse/hcl/**'
-            - '.github/workflows/ci-clickhouse-hcl-schema.yml'
     workflow_dispatch:
 
 concurrency:
@@ -34,7 +24,7 @@ env:
 jobs:
     hcl-guard:
         name: Validate + diff HCL against golden dumps
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         # Informational only while the declarative-HCL pilot stabilizes: the guard
         # runs and reports drift, but a failure must not block PRs. Remove once the

@@ -1,15 +1,7 @@
 name: Dev Setup (Flox)
 
 on:
-    pull_request:
-        paths:
-            - '.flox/**'
-            - '.github/workflows/ci-dev-setup.yml'
-            - 'bin/start'
-            - 'pyproject.toml'
-            - 'uv.lock'
-            - 'pnpm-lock.yaml'
-            - 'package.json'
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -20,7 +12,7 @@ permissions:
 
 jobs:
     flox-dev-setup:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 30
 
         steps:

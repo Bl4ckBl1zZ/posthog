@@ -1,13 +1,6 @@
 name: Inkeep Agent
 on:
-    pull_request:
-        types: [closed]
-    issue_comment:
-        types: [created]
-    pull_request_review_comment:
-        types: [created]
-    pull_request_review:
-        types: [submitted]
+    workflow_dispatch:
 permissions:
     contents: read
     pull-requests: read
@@ -28,7 +21,7 @@ jobs:
                  (github.event.review.author_association == 'OWNER' || github.event.review.author_association == 'MEMBER' || github.event.review.author_association == 'COLLABORATOR'))
               )
             )
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
             - name: Trigger Inkeep Agent

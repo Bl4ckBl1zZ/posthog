@@ -4,10 +4,7 @@ name: Agent services CI
 # v2 agent platform Node.js services (services/agent-*).
 
 on:
-    pull_request:
-    push:
-        branches:
-            - master
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -15,7 +12,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         name: Determine need to run agent services checks
         permissions:
@@ -67,7 +64,7 @@ jobs:
         if: needs.changes.outputs.agents == 'true'
         name: ${{ matrix.workspace }} typecheck + lint + format
         needs: changes
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 10
         strategy:
             fail-fast: false
@@ -107,7 +104,7 @@ jobs:
         if: needs.changes.outputs.agents == 'true'
         name: ${{ matrix.workspace }} unit tests
         needs: changes
-        runs-on: depot-ubuntu-24.04
+        runs-on: ubuntu-24.04
         timeout-minutes: 10
         # agent-tests is the e2e suite — runs in the separate `e2e-tests`
         # job below with the docker-compose stack.
@@ -201,7 +198,7 @@ jobs:
         if: needs.changes.outputs.agents == 'true'
         name: agent-tests e2e (Postgres + Redis + Kafka + SeaweedFS)
         needs: changes
-        runs-on: depot-ubuntu-24.04-4
+        runs-on: ubuntu-24.04
         timeout-minutes: 25 # vitest runs file-serial; ~100s locally
         env:
             COMPOSE_FILE: docker-compose.dev.yml
@@ -277,7 +274,7 @@ jobs:
     agent_ci_pass:
         needs: [typecheck-lint, unit-tests, e2e-tests]
         name: Agent services CI Pass
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
         steps:

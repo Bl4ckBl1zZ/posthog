@@ -1,13 +1,7 @@
 name: Phrocs TUI
 
 on:
-    push:
-        branches:
-            - master
-    pull_request:
-        paths:
-            - '.github/workflows/ci-phrocs.yml'
-            - 'tools/phrocs/**'
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -18,7 +12,7 @@ permissions:
 
 jobs:
     test:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
 
         steps:

@@ -1,9 +1,7 @@
 name: Closed PR
 
 on:
-    pull_request:
-        types:
-            - closed
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -39,7 +37,7 @@ jobs:
             contains(github.event.pull_request.labels.*.name, 'hogbox-preview')
             || (github.event.pull_request.head.repo.full_name == github.repository
                 && github.event.pull_request.user.type != 'Bot')
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
             contents: read
@@ -113,7 +111,7 @@ jobs:
     disable-canary-flags:
         name: Disable feature flags canary
         if: contains(github.event.pull_request.labels.*.name, 'canary-flags')
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - name: Get deployer token
@@ -143,7 +141,7 @@ jobs:
 
     report-pr-age:
         name: Report age of PR
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.merged == true
         steps:

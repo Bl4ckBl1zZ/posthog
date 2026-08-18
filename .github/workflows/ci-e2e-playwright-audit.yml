@@ -10,9 +10,6 @@
 name: E2E Playwright Flake Audit
 
 on:
-    schedule:
-        # 07:00 UTC daily — off-peak for both US and EU.
-        - cron: '0 7 * * *'
     workflow_dispatch:
 
 permissions:
@@ -22,7 +19,7 @@ permissions:
 jobs:
     trigger_audit:
         name: Trigger Playwright run with retries=0
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
             - name: Dispatch main E2E workflow with PLAYWRIGHT_RETRIES=0

@@ -1,9 +1,6 @@
 name: Publish hogli to PyPI
 
 on:
-    push:
-        tags:
-            - 'hogli-v*'
     workflow_dispatch:
 
 permissions:
@@ -21,7 +18,7 @@ jobs:
         # `gh workflow run publish-hogli.yml --ref hogli-vX.Y.Z`); dispatching
         # from a branch is a no-op.
         if: startsWith(github.ref, 'refs/tags/hogli-v')
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         environment: pypi-hogli
         permissions:

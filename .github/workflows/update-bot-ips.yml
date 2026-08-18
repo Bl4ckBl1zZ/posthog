@@ -1,9 +1,6 @@
 name: Update Bot IPs
 
 on:
-    schedule:
-        # Run daily at 2 AM UTC
-        - cron: '0 2 * * *'
     workflow_dispatch: # Allow manual triggering
 
 permissions:
@@ -11,7 +8,7 @@ permissions:
 
 jobs:
     update-bot-ips:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
 
         steps:

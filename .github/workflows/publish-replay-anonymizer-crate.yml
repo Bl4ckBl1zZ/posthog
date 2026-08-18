@@ -1,16 +1,7 @@
 name: Publish posthog-replay-anonymizer to crates.io
 
 on:
-    push:
-        branches:
-            - master
-        paths:
-            - rust/replay-anonymizer/**
-            - .github/workflows/publish-replay-anonymizer-crate.yml
-    pull_request:
-        paths:
-            - rust/replay-anonymizer/**
-            - .github/workflows/publish-replay-anonymizer-crate.yml
+    workflow_dispatch:
 
 env:
     CARGO_TERM_COLOR: always
@@ -22,7 +13,7 @@ concurrency:
 jobs:
     check-version-bump:
         name: Check version was bumped
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.event_name == 'pull_request'
         permissions:
@@ -82,7 +73,7 @@ jobs:
         name: Publish to crates.io
         # Not on a Depot runner: this job holds CARGO_REGISTRY_TOKEN and Depot injects the shared
         # sccache WebDAV credentials ambiently, which a malicious dependency build script could read.
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         if: github.event_name == 'push' && github.repository == 'PostHog/posthog'
         permissions:

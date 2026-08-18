@@ -1,0 +1,97 @@
+# CI policy for the RestoreCord PostHog fork.
+#
+# Upstream builds on Depot and a self-hosted runner pool this fork does not have, and
+# upstream keeps adding jobs that reference them. Rather than hand-patching every sync,
+# the overrides are *generated*: bin/fork-ci-normalize.py reads this file and rewrites
+# .github/workflows/*.yml and .github/actions/*/action.yml. An upstream merge can then
+# take upstream's version of .github/ wholesale and re-apply the policy on top.
+#
+# Run `bin/fork-ci-normalize.py` after editing. CI enforces it via fork-ci-guard.yml.
+
+# Runner labels, rewritten to GitHub-hosted standard runners (free and unlimited on a
+# public repo). Rules apply in order, so size and arch variants must precede the plain
+# form. Regexes are Python `re`; replacements may use \1-style backreferences.
+runner_rewrites:
+    - match: '\bhalifax-[a-z0-9-]+\b'
+      replace: 'ubuntu-latest'
+    - match: '\bdepot-ubuntu-latest(?:-\d+)?\b'
+      replace: 'ubuntu-latest'
+    - match: '\bdepot-ubuntu-(\d{2}\.\d{2})-arm(?:-\d+)?\b'
+      replace: 'ubuntu-\1-arm'
+    - match: '\bdepot-ubuntu-(\d{2}\.\d{2})(?:-\d+)?\b'
+      replace: 'ubuntu-\1'
+    - match: '\bdepot-macos-(\d+|latest)\b'
+      replace: 'macos-\1'
+    - match: '\bdepot-windows-(\d{4}|latest)\b'
+      replace: 'windows-\1'
+
+# Depot's actions need a Depot org and token. Swap them for the upstream-pinned Docker
+# equivalents and drop the inputs that only Depot understands.
+#
+# Caveat: Depot's `save`/`load` round-trip through Depot's ephemeral registry has no
+# Docker equivalent, so multi-job build/pull flows lose their handoff. Those workflows
+# are dispatch-only under this policy, so nothing scheduled depends on them.
+action_rewrites:
+    - from: 'depot/setup-action'
+      to: 'docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0'
+    - from: 'depot/build-push-action'
+      to: 'docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0'
+      drop_inputs: [project, token, buildx-fallback, save, lint, lint-fail-on]
+
+# PostHog's CI is ~190 jobs sized for a paid fleet. Fanning that out on free runners
+# would queue for hours and never go green, which would block the sync auto-merge. So
+# only the workflows this fork actually maintains keep their upstream triggers;
+# everything else is reduced to `keep_triggers` and stays available on demand.
+#
+# To bring a workflow back, add its filename here and re-run the normalizer.
+enabled_workflows:
+    - fork-upstream-sync.yml
+    - fork-ci-guard.yml
+    - ci-actionlint.yml
+    - build-multi-org-image.yml
+    - ci-recording-rasterizer-container.yml
+
+keep_triggers: [workflow_call, workflow_dispatch]
+
+# Which side wins when an upstream merge conflicts, before the normalizer re-runs.
+# Anything not listed needs a human — the sync opens a draft PR instead of merging.
+conflict_resolution:
+    ours:
+        - FORK.md
+        - .github/fork-ci-policy.yml
+        - .github/workflows/fork-upstream-sync.yml
+        - .github/workflows/fork-ci-guard.yml
+        - bin/fork-sync-resolve.py
+        - .github/workflows/build-multi-org-image.yml
+        - bin/fork-ci-normalize.py
+        - Dockerfile.multi-org
+        - Dockerfile.replay-overlay
+    theirs:
+        - .github/workflows/
+        - .github/actions/
+        - .depot/workflows/
+
+# Fork changes that an upstream merge must not silently drop. Checked on every sync PR
+# and on every PR via fork-ci-guard.yml.
+fork_invariants:
+    - path: posthog/utils.py
+      contains: 'settings.MULTI_ORG_ENABLED'
+      why: 'opt-in multi-organization mode'
+    - path: posthog/api/organization.py
+      contains: 'settings.MULTI_ORG_ENABLED'
+      why: 'multi-org organization creation permission'
+    - path: ee/settings.py
+      contains: 'REPLAY_VISION_ANTHROPIC_MODEL'
+      why: 'Replay Vision Anthropic scanner provider'
+    - path: products/replay_vision/backend/temporal/activities/call_scanner_provider_anthropic.py
+      contains: 'AsyncAnthropic'
+      why: 'Replay Vision Anthropic scanner provider'
+    - path: products/replay_vision/backend/feature_flag.py
+      contains: '_self_hosted_flag_client'
+      why: 'local feature flag evaluation when self-hosted'
+    - path: docker/clickhouse/config.d/low-memory.xml
+      why: 'low-memory ClickHouse profile for self-hosted'
+    - path: Dockerfile.multi-org
+      why: 'the image this fork publishes'
+    - path: Dockerfile.replay-overlay
+      why: 'Replay Vision overlay image'

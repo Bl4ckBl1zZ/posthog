@@ -1,10 +1,7 @@
 name: Priority Review Slack Notifications
 
 on:
-    pull_request:
-        types: [labeled, closed, ready_for_review]
-    pull_request_review:
-        types: [submitted]
+    workflow_dispatch:
 
 env:
     SLACK_CHANNEL: 'C0AEM55RJ77' # #dev-stamp-exchange
@@ -16,7 +13,7 @@ permissions:
 jobs:
     # When a non-draft PR is labeled "priority-review", or a labeled PR is undrafted
     notify-priority-review:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: >-
             github.event.pull_request.head.repo.full_name == github.repository
@@ -89,7 +86,7 @@ jobs:
 
     # When a priority-review PR is closed or merged, update the Slack message
     cleanup-closed:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: >-
             github.event.action == 'closed'
@@ -153,7 +150,7 @@ jobs:
 
     # When a priority-review PR is approved, update the Slack message
     notify-reviewed:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: >-
             github.event.action == 'submitted'

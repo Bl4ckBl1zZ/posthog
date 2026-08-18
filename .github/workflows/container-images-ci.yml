@@ -1,11 +1,7 @@
 name: Container Images CI
 
 on:
-    pull_request:
-        # Mirror ci-hobby.yml's trigger types so the `hobby-preview` label can
-        # retroactively kick off a build. ci-hobby.yml omits `reopened`, so we
-        # do too — otherwise reopens would build an image with no consumer.
-        types: [opened, synchronize, labeled, unlabeled]
+    workflow_dispatch:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -13,7 +9,7 @@ concurrency:
 
 jobs:
     changes:
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         if: github.repository == 'PostHog/posthog'
         name: Determine need to run Docker checks
@@ -100,7 +96,7 @@ jobs:
     dockerignore_guard:
         needs: changes
         name: Guard against dropped image files
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 10
         # Needs no secrets or docker login, so unlike the image build below it runs on fork PRs too.
         if: github.event_name == 'pull_request' && needs.changes.outputs.dockerignore_changed == 'true'
@@ -118,7 +114,7 @@ jobs:
         needs: changes
         name: Build Docker image
         # run these on 4, if they're RAM constrained the FE build will fail randomly in Docker build
-        runs-on: depot-ubuntu-24.04-4
+        runs-on: ubuntu-24.04
         timeout-minutes: 30
         permissions:
             id-token: write # allow issuing OIDC tokens for this workflow run
@@ -163,7 +159,7 @@ jobs:
     lint:
         needs: changes
         name: Lint changed Dockerfiles
-        runs-on: halifax-bl4ckbl1zz-posthog-6c1d8cbb
+        runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read
