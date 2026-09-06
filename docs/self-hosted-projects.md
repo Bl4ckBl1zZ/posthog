@@ -7,6 +7,7 @@ The API retains its safety cap of 1,500 projects per organization and its existi
 Cloud deployments retain their billing limits.
 
 Build and deploy the updated `Dockerfile.multi-org` image to apply the change to a running instance.
+The frontend build includes the workspace packages required by the current upstream frontend, including `packages/llm-normalizer`.
 The organization model must be included in the image alongside the API serializer so the project picker and creation endpoint use the same entitlements.
 
 Other feature restrictions remain in place.
