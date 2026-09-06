@@ -14,6 +14,7 @@ import { tasksRunsCommandCreate, tasksRunsStreamTokenRetrieve } from 'products/t
 import type { AttachedContextItem } from '../types/contextTypes'
 import type { PermissionRequestFrame, StoredLogEntry } from '../types/wireTypes'
 import { contextItemLine, wrapWithPosthogContext } from '../utils/posthogContextBlock'
+import { computeTurnTrailers } from '../utils/turnTrailers'
 import { attachedContextLogic } from './attachedContextLogic'
 import { foregroundStreamLogic } from './foregroundStreamLogic'
 import {
@@ -260,6 +261,19 @@ describe('runStreamLogic', () => {
             expect(invocation?.contentBlocks).toEqual([{ type: 'text', text: 'done' }])
 
             expect(logic.values.threadItems.some((item) => item.type === 'turn_separator')).toEqual(true)
+        })
+
+        it('follows the latest run_started conversationClear advertisement', async () => {
+            // A run served by a capable agent followed by one whose agent does not advertise
+            // the capability (an agent rollback): the gate must drop, or the client records a
+            // clear boundary the current agent ignores on resume.
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(notification('_posthog/run_started', { conversationClear: true }))
+            }).toMatchValues({ conversationClearSupported: true })
+
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(notification('_posthog/run_started', {}))
+            }).toMatchValues({ conversationClearSupported: false })
         })
 
         it('sets currentMode on a current_mode_update frame', async () => {
@@ -917,6 +931,43 @@ describe('runStreamLogic', () => {
             }).toFinishAllListeners()
 
             expect(attachedContextLogic.values.seenContextLinesByTask).toEqual({})
+        })
+    })
+
+    describe('turn trace ids', () => {
+        const TRACE = '1d223305-d7ca-bfeb-3775-a4a15a6a31c6'
+
+        it('carries a replayed turn_complete traceId into the trailer and selector', async () => {
+            const frames: StoredLogEntry[] = [
+                notification('_posthog/user_message', { content: 'say baseline' }),
+                sessionUpdate({ sessionUpdate: 'agent_message', messageId: 'm1', content: { text: 'baseline' } }),
+                notification('_posthog/turn_complete', { sessionId: 's1', stopReason: 'end_turn', traceId: TRACE }),
+            ]
+            jest.spyOn(api.tasks.runs, 'getLogEntries').mockResolvedValue(frames as any)
+            jest.spyOn(api.tasks.runs, 'get').mockResolvedValue({ status: 'completed' } as any)
+
+            await expectLogic(logic, () => {
+                logic.actions.bootstrapRun({ taskId: 'task-1', runId: 'run-1' })
+            }).toFinishAllListeners()
+
+            const trailers = computeTurnTrailers(logic.values.threadItems)
+            const lastTurn = [...trailers.values()].find((trailer) => trailer.isLastTurn)
+            expect(lastTurn?.traceId).toBe(TRACE)
+            expect(logic.values.latestTurnTraceId).toBe(TRACE)
+        })
+
+        it('keeps the last real turn id when a trailing traceless separator follows', async () => {
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(notification('_posthog/user_message', { content: 'q' }))
+                logic.actions.ingestAcpFrame(
+                    sessionUpdate({ sessionUpdate: 'agent_message', messageId: 'm1', content: { text: 'a' } })
+                )
+                logic.actions.ingestAcpFrame(notification('_posthog/turn_complete', { traceId: TRACE }))
+                // Synthetic idle-resume/error separators carry no trace id and are not turns.
+                logic.actions.ingestAcpFrame(notification('_posthog/turn_complete', {}))
+            }).toFinishAllListeners()
+
+            expect(logic.values.latestTurnTraceId).toBe(TRACE)
         })
     })
 
@@ -1611,14 +1662,66 @@ describe('runStreamLogic', () => {
             expect(logic.values.isThinking).toEqual(false)
         })
 
-        it('re-raises on a follow-up turn opened by a human message, with no new run_started', () => {
+        // A follow-up on the same run starts a new turn with no second run_started frame. It reaches
+        // the thread as this composer's optimistic echo, as a wire user turn in one of its two forms,
+        // or — for a follow-up sent from Slack, where the live stream carries no user turn at all —
+        // only as the agent's first output.
+        it.each([
+            ['this composer', (): void => logic.actions.pushHumanMessage('and the mobile funnel?')],
+            [
+                'a wire _posthog/user_message',
+                (): void =>
+                    logic.actions.ingestAcpFrame(
+                        notification('_posthog/user_message', { content: 'and the mobile funnel?' })
+                    ),
+            ],
+            [
+                'a wire session/update user_message',
+                (): void =>
+                    logic.actions.ingestAcpFrame(
+                        sessionUpdate({ sessionUpdate: 'user_message', content: { text: 'and the mobile funnel?' } })
+                    ),
+            ],
+            [
+                'the agent producing output',
+                (): void =>
+                    logic.actions.ingestAcpFrame(
+                        sessionUpdate({
+                            sessionUpdate: 'agent_message_chunk',
+                            messageId: 'm2',
+                            content: { text: 'On' },
+                        })
+                    ),
+            ],
+        ])('re-raises on a follow-up turn opened by %s, with no new run_started', (_case, sendFollowUp) => {
             logic.actions.ingestAcpFrame(notification('_posthog/run_started', {}))
             logic.actions.ingestAcpFrame(notification('_posthog/turn_complete', {}))
             expect(logic.values.isThinking).toEqual(false)
 
-            // A follow-up on the same run starts a new turn — no second run_started frame arrives.
-            logic.actions.pushHumanMessage('and the mobile funnel?')
+            sendFollowUp()
             expect(logic.values.isThinking).toEqual(true)
+        })
+
+        it('re-raises for a queued follow-up whose user turn precedes the prior turn_complete', () => {
+            logic.actions.ingestAcpFrame(notification('_posthog/run_started', {}))
+            // A follow-up sent while the first turn is still running is persisted when it is received,
+            // so the replayed log carries it before that turn's completion.
+            logic.actions.ingestAcpFrame(notification('_posthog/user_message', { content: 'and mobile?' }))
+            logic.actions.ingestAcpFrame(notification('_posthog/turn_complete', {}))
+            expect(logic.values.isThinking).toEqual(false)
+
+            logic.actions.ingestAcpFrame(
+                sessionUpdate({ sessionUpdate: 'agent_message_chunk', messageId: 'm2', content: { text: 'On' } })
+            )
+            expect(logic.values.isThinking).toEqual(true)
+        })
+
+        it('stays off after turn_complete on an update that does not mean the agent is generating', () => {
+            logic.actions.ingestAcpFrame(notification('_posthog/run_started', {}))
+            logic.actions.ingestAcpFrame(notification('_posthog/turn_complete', {}))
+
+            logic.actions.ingestAcpFrame(sessionUpdate({ sessionUpdate: 'current_mode_update', currentModeId: 'auto' }))
+            expect(logic.values.isThinking).toEqual(false)
         })
 
         it('is on during the cold-boot queued window before the first run_started', async () => {
@@ -1895,6 +1998,45 @@ describe('runStreamLogic', () => {
             await flushPromises()
 
             expect(logic.values.sseStatus).toEqual('error')
+        })
+    })
+
+    describe('connection state across runs', () => {
+        // A follow-up on a finished run opens a successor with a stream of its own. The finished
+        // run's sentinel flag and resume cursor must not carry into it: the flag gates the drop
+        // handler, and the cursor addresses a different Redis stream.
+        it("opens a successor run on fresh connection state, not the finished run's", async () => {
+            jest.spyOn(api.tasks.runs, 'get').mockResolvedValue({ status: 'in_progress' } as any)
+            logic.actions.openSseForRun({ taskId: 'task-1', runId: 'run-1', startLatest: false })
+            await MockStream.latest().emitMessage(notification('_posthog/run_started', {}), '100-0')
+            await MockStream.latest().emitStreamEnd()
+
+            logic.actions.openSseForRun({ taskId: 'task-1', runId: 'run-2', startLatest: false })
+
+            expect(MockStream.latest().options.lastEventId).toBeUndefined()
+            await MockStream.latest().emitOpen()
+
+            const opened = MockStream.connections.length
+            jest.useFakeTimers()
+            await MockStream.latest().emitClose()
+            await flushPromises()
+            expect(logic.values.sseStatus).toEqual('reconnecting')
+            jest.advanceTimersByTime(2000)
+            expect(MockStream.connections.length).toEqual(opened + 1)
+            jest.useRealTimers()
+        })
+
+        it('leaves a dead stream closed when a follow-up starts a turn', async () => {
+            jest.spyOn(api.tasks.runs, 'get').mockResolvedValue({ status: 'in_progress' } as any)
+            logic.actions.openSseForRun({ taskId: 'task-1', runId: 'run-1', startLatest: false })
+            await MockStream.latest().emitMessage(notification('_posthog/run_started', {}), '100-0')
+            await MockStream.latest().emitStreamEnd()
+            expect(logic.values.sseStatus).toEqual('closed')
+            const opened = MockStream.connections.length
+
+            logic.actions.pushHumanMessage('and one more thing')
+
+            expect(MockStream.connections.length).toEqual(opened)
         })
     })
 
@@ -2308,6 +2450,36 @@ describe('runStreamLogic', () => {
             ])
         })
 
+        it('clears currentProgress when a step finishes so the milestone label never sticks as live status', async () => {
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(
+                    notification('_posthog/progress', {
+                        sessionId: 's',
+                        step: 'agent',
+                        status: 'in_progress',
+                        label: 'Starting agent',
+                        group: 'setup:run-1',
+                    })
+                )
+            }).toFinishAllListeners()
+
+            expect(logic.values.currentProgress).toEqual('Starting agent')
+
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(
+                    notification('_posthog/progress', {
+                        sessionId: 's',
+                        step: 'agent',
+                        status: 'completed',
+                        label: 'Started agent',
+                        group: 'setup:run-1',
+                    })
+                )
+            }).toFinishAllListeners()
+
+            expect(logic.values.currentProgress).toBeNull()
+        })
+
         it('falls back to detail when label is absent', async () => {
             await expectLogic(logic, () => {
                 logic.actions.ingestAcpFrame(
@@ -2513,6 +2685,39 @@ describe('runStreamLogic', () => {
             const items = logic.values.threadItems
             expect(items.some((i) => i.type === 'status')).toBe(false)
             expect(items.some((i) => i.type === 'compact_boundary')).toBe(true)
+        })
+    })
+
+    describe('/clear inline items', () => {
+        it('replaces the in-progress clearing spinner with the conversation_cleared divider', async () => {
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(notification('_posthog/status', { status: 'clearing' }))
+                logic.actions.ingestAcpFrame(notification('_posthog/conversation_cleared', { sessionId: 'sess_new' }))
+                logic.actions.ingestAcpFrame(notification('_posthog/status', { status: 'clearing', isComplete: true }))
+            }).toFinishAllListeners()
+
+            expect(logic.values.threadItems).toEqual([expect.objectContaining({ type: 'conversation_cleared' })])
+        })
+
+        it('reports a failed clear in place of the spinner, since no boundary follows it', async () => {
+            await expectLogic(logic, () => {
+                logic.actions.ingestAcpFrame(notification('_posthog/status', { status: 'clearing' }))
+                logic.actions.ingestAcpFrame(
+                    notification('_posthog/status', {
+                        status: 'clearing_failed',
+                        error: 'Conversation clear timed out after 30000ms',
+                    })
+                )
+            }).toFinishAllListeners()
+
+            expect(logic.values.threadItems).toEqual([
+                expect.objectContaining({
+                    type: 'status',
+                    status: 'clearing_failed',
+                    isComplete: true,
+                    errorMessage: 'Conversation clear timed out after 30000ms',
+                }),
+            ])
         })
     })
 

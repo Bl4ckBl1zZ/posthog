@@ -6,6 +6,9 @@ requires-python = ">=3.13"
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P7D"
 
+[options.exclude-newer-package]
+posthoganalytics = false
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -908,7 +911,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "litellm", specifier = "==1.92.0" },
     { name = "orjson", specifier = ">=3.10.0" },
-    { name = "posthoganalytics", specifier = ">=3.0.0" },
+    { name = "posthoganalytics", specifier = ">=7.45.3" },
     { name = "prometheus-client", specifier = ">=0.21.0" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
@@ -1190,19 +1193,17 @@ wheels = [
 
 [[package]]
 name = "posthoganalytics"
-version = "7.4.2"
+version = "7.45.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
     { name = "distro" },
-    { name = "python-dateutil" },
     { name = "requests" },
-    { name = "six" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d0/5c/22671e2ec3e2dbf0d1c5f03266306df8c858a37993f670626e075066581c/posthoganalytics-7.4.2.tar.gz", hash = "sha256:4ca71ab40d89331552be1627e923343e8bc78b82e321c594986a83db8663ca76", size = 144644, upload-time = "2025-12-22T11:03:19.25Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/f8/d28e0571934d399ccec5ce55f4e1f1d53651c0683fe28969e799c543fdc2/posthoganalytics-7.45.3.tar.gz", hash = "sha256:b60a4e8c58b38c69aad5f48b2b9468533eff91938928de1116c2963e4db479cf", size = 506333, upload-time = "2026-09-01T10:34:54.931Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/19/b6e727b2a641d8e35c79bedb39c5fcfb0300711f6a5276c6c13a4efa7b85/posthoganalytics-7.4.2-py3-none-any.whl", hash = "sha256:5d909624e81dfbd9bfb72d0af34758c2542da76cfb56eed0b2e36038d67a9247", size = 167902, upload-time = "2025-12-22T11:03:17.91Z" },
+    { url = "https://files.pythonhosted.org/packages/be/bb/719a5058b7dd7dc49a0be8eaf052841bf92c6926514a46529dfd86d86cba/posthoganalytics-7.45.3-py3-none-any.whl", hash = "sha256:c65de21b9ea58fae70a2307d123ccb1b88615735d3315bc8b23e34c9ab1acb42", size = 602434, upload-time = "2026-09-01T10:34:53.493Z" },
 ]
 
 [[package]]

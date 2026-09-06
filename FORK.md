@@ -9,6 +9,7 @@ of changes for running PostHog self-hosted.
   instance create and manage multiple organizations without consulting the instance
   license. The organization switcher trusts the preflight permission and opens the
   creation dialog directly.
+- **Multiple projects for every self-hosted organization.** Admins and owners can create projects without a billing entitlement. See [self-hosted projects](docs/self-hosted-projects.md).
 - **Replay Vision on self-hosted.** An Anthropic scanner provider, and feature flags
   evaluated locally instead of against PostHog Cloud.
 - **Retention settings on self-hosted.** Team and project retention overrides stay

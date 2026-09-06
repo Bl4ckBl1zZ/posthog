@@ -12,6 +12,7 @@ on:
             - 'frontend/src/lib/components/Account/OrgSwitcher.tsx'
             - 'ee/settings.py'
             - 'posthog/api/organization.py'
+            - 'posthog/models/organization.py'
             - 'posthog/utils.py'
             - 'products/replay_vision/backend/**'
             - '.github/workflows/build-multi-org-image.yml'

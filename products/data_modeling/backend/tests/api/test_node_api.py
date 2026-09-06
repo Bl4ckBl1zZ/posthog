@@ -1,16 +1,26 @@
 from datetime import timedelta
+from uuid import uuid4
 
+import pytest
 from posthog.test.base import APIBaseTest
 from unittest.mock import AsyncMock, patch
 
 from parameterized import parameterized
 from rest_framework import status
+from temporalio.common import WorkflowIDConflictPolicy, WorkflowIDReusePolicy
 
 from posthog.models import Team
 
 from products.data_modeling.backend.logic.node_frequency import set_declared_target
+from products.data_modeling.backend.logic.node_materialization import start_node_materialization
+from products.data_modeling.backend.logic.node_suspension import (
+    mark_node_suspended,
+    suspension_reset_at,
+    suspension_state,
+)
 from products.data_modeling.backend.models import DAG, Edge, Node, NodeType
 from products.data_modeling.backend.models.datawarehouse_saved_query import DataWarehouseSavedQuery
+from products.warehouse_sources.backend.facade.testing import WarehouseAccessControlTestMixin
 
 
 class TestNodeViewSet(APIBaseTest):
@@ -222,21 +232,77 @@ class TestNodeViewSet(APIBaseTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("table", response.json()["error"].lower())
 
+    def _suspend(self, node: Node) -> None:
+        mark_node_suspended(node, engine="clickhouse", reason="boom", job_id=str(uuid4()), fingerprint=None)
+        node.save()
+
+    def test_suspended_node_reports_its_state_and_can_be_resumed(self):
+        self._suspend(self.view_node)
+
+        detail = f"/api/environments/{self.team.id}/data_modeling_nodes/{self.view_node.id}/"
+        self.assertEqual(self.client.get(detail).json()["suspended"]["clickhouse"]["reason"], "boom")
+
+        response = self.client.post(f"{detail}resume/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.get(detail).json()["suspended"], {})
+
+    @patch("products.data_modeling.backend.presentation.views.node.sync_connect")
+    def test_run_resumes_every_node_it_was_asked_to_run(self, mock_sync_connect):
+        # A suspended node is skipped by ExecuteDAGWorkflow, so without this the button is a no-op.
+        mock_sync_connect.return_value = AsyncMock()
+        downstream = Node.objects.create(
+            team=self.team,
+            dag=self.dag,
+            saved_query=DataWarehouseSavedQuery.objects.create(
+                name="downstream_view", team=self.team, query={"query": "SELECT 1", "kind": "HogQLQuery"}
+            ),
+            type=NodeType.VIEW,
+        )
+        Edge.objects.create(team=self.team, dag=self.dag, source=self.view_node, target=downstream)
+        self._suspend(self.view_node)
+        self._suspend(downstream)
+
+        response = self.client.post(
+            f"/api/environments/{self.team.id}/data_modeling_nodes/{self.view_node.id}/run/",
+            {"direction": "downstream"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.view_node.refresh_from_db()
+        downstream.refresh_from_db()
+        self.assertEqual(suspension_state(self.view_node), {})
+        self.assertEqual(suspension_state(downstream), {})
+
     @patch("products.data_modeling.backend.logic.node_materialization.sync_connect")
-    def test_materialize_starts_workflow(self, mock_sync_connect):
-        mock_client = AsyncMock()
-        mock_sync_connect.return_value = mock_client
+    def test_materialize_resumes_the_node(self, mock_sync_connect):
+        mock_sync_connect.return_value = AsyncMock()
+        self._suspend(self.view_node)
 
         response = self.client.post(
             f"/api/environments/{self.team.id}/data_modeling_nodes/{self.view_node.id}/materialize/",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_client.start_workflow.assert_called_once()
+        self.view_node.refresh_from_db()
+        self.assertEqual(suspension_state(self.view_node), {})
 
-    @patch("products.data_modeling.backend.presentation.views.node.feature_enabled_or_false", return_value=True)
+    @patch("products.data_modeling.backend.logic.node_materialization.sync_connect")
+    def test_materialization_without_resume_keeps_the_node_suspended(self, mock_sync_connect):
+        mock_client = AsyncMock()
+        mock_sync_connect.return_value = mock_client
+        self._suspend(self.view_node)
+        before = suspension_state(self.view_node)
+
+        start_node_materialization(self.view_node, resume=False)
+
+        self.view_node.refresh_from_db()
+        self.assertEqual(suspension_state(self.view_node), before)
+        self.assertIsNone(suspension_reset_at(self.view_node, "clickhouse"))
+        self.assertEqual(mock_client.start_workflow.call_args[0][0], "data-modeling-materialize-view")
+
     @patch("products.data_modeling.backend.presentation.views.node.sync_connect")
-    def test_run_uses_execute_dag_when_v2_enabled(self, mock_sync_connect, mock_feature_flag):
+    def test_run_starts_the_execute_dag_workflow(self, mock_sync_connect):
         mock_client = AsyncMock()
         mock_sync_connect.return_value = mock_client
 
@@ -249,24 +315,8 @@ class TestNodeViewSet(APIBaseTest):
         call_args = mock_client.start_workflow.call_args
         self.assertEqual(call_args[0][0], "data-modeling-execute-dag")
 
-    @patch("products.data_modeling.backend.presentation.views.node.feature_enabled_or_false", return_value=False)
-    @patch("products.data_modeling.backend.presentation.views.node.sync_connect")
-    def test_run_uses_run_workflow_when_v2_disabled(self, mock_sync_connect, mock_feature_flag):
-        mock_client = AsyncMock()
-        mock_sync_connect.return_value = mock_client
-
-        response = self.client.post(
-            f"/api/environments/{self.team.id}/data_modeling_nodes/{self.view_node.id}/run/",
-            {"direction": "upstream"},
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        call_args = mock_client.start_workflow.call_args
-        self.assertEqual(call_args[0][0], "data-modeling-run")
-
-    @patch("products.data_modeling.backend.presentation.views.node.feature_enabled_or_false", return_value=True)
     @patch("products.data_modeling.backend.logic.node_materialization.sync_connect")
-    def test_materialize_uses_materialize_view_when_v2_enabled(self, mock_sync_connect, mock_feature_flag):
+    def test_materialize_starts_the_materialize_view_workflow(self, mock_sync_connect):
         mock_client = AsyncMock()
         mock_sync_connect.return_value = mock_client
 
@@ -277,20 +327,9 @@ class TestNodeViewSet(APIBaseTest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         call_args = mock_client.start_workflow.call_args
         self.assertEqual(call_args[0][0], "data-modeling-materialize-view")
-
-    @patch("products.data_modeling.backend.presentation.views.node.feature_enabled_or_false", return_value=False)
-    @patch("products.data_modeling.backend.logic.node_materialization.sync_connect")
-    def test_materialize_uses_run_workflow_when_v2_disabled(self, mock_sync_connect, mock_feature_flag):
-        mock_client = AsyncMock()
-        mock_sync_connect.return_value = mock_client
-
-        response = self.client.post(
-            f"/api/environments/{self.team.id}/data_modeling_nodes/{self.view_node.id}/materialize/",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        call_args = mock_client.start_workflow.call_args
-        self.assertEqual(call_args[0][0], "data-modeling-run")
+        self.assertEqual(call_args.kwargs["id"], f"materialize-view-{self.view_node.id}")
+        self.assertEqual(call_args.kwargs["id_conflict_policy"], WorkflowIDConflictPolicy.USE_EXISTING)
+        self.assertEqual(call_args.kwargs["id_reuse_policy"], WorkflowIDReusePolicy.ALLOW_DUPLICATE)
 
     def test_lineage_returns_subgraph(self):
         response = self.client.get(
@@ -545,6 +584,69 @@ class TestNodeViewSet(APIBaseTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.view_node.refresh_from_db()
         self.assertEqual(self.view_node.dag_id, self.dag.id)
+
+
+@pytest.mark.ee
+class TestNodeAccessControl(WarehouseAccessControlTestMixin):
+    # NodeViewSet is scope_object = "INTERNAL", so AccessControlPermission does not gate it on any
+    # resource — the actions re-apply warehouse RBAC by hand. warehouse_view inherits from
+    # warehouse_objects, so grant at the umbrella.
+    resource = "warehouse_objects"
+
+    def setUp(self):
+        super().setUp()
+        self.dag = DAG.objects.create(team=self.team, name=f"posthog_{self.team.id}")
+        self.node = Node.objects.create(
+            team=self.team,
+            dag=self.dag,
+            saved_query=DataWarehouseSavedQuery.objects.create(
+                name="suspended_view", team=self.team, query={"query": "SELECT 1", "kind": "HogQLQuery"}
+            ),
+            type=NodeType.VIEW,
+        )
+        mark_node_suspended(self.node, engine="clickhouse", reason="boom", job_id=str(uuid4()), fingerprint=None)
+        self.node.save()
+
+    def _list_url(self) -> str:
+        return f"/api/environments/{self.team.id}/data_modeling_nodes/"
+
+    @parameterized.expand(
+        [
+            ("viewer", status.HTTP_403_FORBIDDEN),
+            ("editor", status.HTTP_200_OK),
+        ]
+    )
+    def test_resume_requires_warehouse_write_access(self, access_level, expected_status):
+        user = self.viewer_user if access_level == "viewer" else self.editor_user
+        self._create_access_control(user, access_level=access_level)
+        self.client.force_login(user)
+
+        response = self.client.post(f"{self._list_url()}{self.node.id}/resume/")
+
+        self.assertEqual(response.status_code, expected_status)
+        self.node.refresh_from_db()
+        self.assertEqual(suspension_state(self.node) == {}, expected_status == status.HTTP_200_OK)
+
+    @parameterized.expand(
+        [
+            ("list_granted", False, "viewer", status.HTTP_200_OK),
+            ("list_denied", False, None, status.HTTP_403_FORBIDDEN),
+            ("retrieve_granted", True, "viewer", status.HTTP_200_OK),
+            ("retrieve_denied", True, None, status.HTTP_403_FORBIDDEN),
+        ]
+    )
+    def test_reading_nodes_requires_warehouse_read_access(self, _name, detail, access_level, expected_status):
+        # The serialized `suspended` state carries the raw materialization error, so a project member
+        # denied warehouse access must not be able to read nodes at all.
+        if access_level is None:
+            self._create_project_default(access_level="none")
+        else:
+            self._create_access_control(self.viewer_user, access_level=access_level)
+        self.client.force_login(self.viewer_user)
+
+        response = self.client.get(f"{self._list_url()}{self.node.id}/" if detail else self._list_url())
+
+        self.assertEqual(response.status_code, expected_status)
 
 
 class TestEdgeViewSet(APIBaseTest):

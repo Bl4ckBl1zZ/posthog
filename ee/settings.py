@@ -167,5 +167,5 @@ SCIM_SERVICE_PROVIDER = {
         }
     ],
     # User model is already configured via AUTH_USER_MODEL = "posthog.User"
-    "GROUP_MODEL": "ee.models.rbac.role.Role",
+    "GROUP_MODEL": "products.access_control.backend.models.role.Role",
 }

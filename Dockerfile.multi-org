@@ -34,6 +34,7 @@ RUN apt-get update && \
 
 RUN rm -rf /code/frontend/dist /code/staticfiles
 COPY ee/settings.py /code/ee/settings.py
+COPY posthog/models/organization.py /code/posthog/models/organization.py
 COPY posthog/api/organization.py /code/posthog/api/organization.py
 COPY posthog/api/project.py /code/posthog/api/project.py
 COPY posthog/api/team.py /code/posthog/api/team.py

@@ -22,7 +22,7 @@ runner_rewrites:
       replace: 'ubuntu-\1'
     - match: '\bdepot-macos-(\d+|latest)\b'
       replace: 'macos-\1'
-    - match: '\bdepot-windows-(\d{4}|latest)\b'
+    - match: '\b(?:depot-)?windows-(\d{4}|latest)(?:-\d+)?\b'
       replace: 'windows-\1'
 
 # Depot's actions need a Depot org and token. Swap them for the upstream-pinned Docker
